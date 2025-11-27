@@ -1,6 +1,6 @@
 {
   "name": "claude-status-bar",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Powerline-style status bar for Claude Code CLI with i18n support (English/Korean)",
   "type": "module",
   "bin": {

@@ -9,7 +9,7 @@ import { initI18n, t } from './i18n/index.js';
 import { getWidgetName, getWidgetDescription } from './widgets/types.js';
 
 // 패키지 정보
-const VERSION = '1.2.0';
+const VERSION = '1.2.1';
 const NAME = 'claude-status-bar';
 
 // i18n 초기화 (설정에서 로케일 로드)

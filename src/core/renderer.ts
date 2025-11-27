@@ -99,6 +99,18 @@ function getWidgetContent(
         return `${t('renderer:labels.todo')} ${todoProgress.completed}/${todoProgress.total} [${percent}%]`;
       }
 
+      case 'memory': {
+        const memory = process.memoryUsage();
+        const usedMB = Math.round(memory.heapUsed / 1024 / 1024);
+        return `${t('renderer:labels.mem')} ${usedMB}MB`;
+      }
+
+      case 'files': {
+        const gitInfo = getGitInfo(data.cwd || data.workspace?.current_dir);
+        if (gitInfo.linesAdded === 0 && gitInfo.linesRemoved === 0) return null;
+        return `+${gitInfo.linesAdded}/-${gitInfo.linesRemoved}`;
+      }
+
       default:
         return null;
     }

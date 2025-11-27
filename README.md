@@ -5,7 +5,7 @@
 ## Features
 
 - **Powerline Style**: Beautiful arrow separators with customizable colors
-- **8 Built-in Widgets**: Model, Git branch, Tokens, Cost, Session time, CWD, Context window, Todo progress
+- **10 Built-in Widgets**: Model, Git branch, Tokens, Cost, Session time, CWD, Context window, Todo progress, Memory usage, File changes
 - **Context Window Usage**: Real-time visualization of context window consumption
 - **Todo Progress**: Track your task completion progress
 - **Multiple Themes**: powerline-dark, powerline-light, minimal
@@ -92,6 +92,8 @@ claude-status-bar widgets
 | `cwd` | Current working directory | Enabled |
 | `context` | Context window usage (%) | Enabled |
 | `todo` | Todo list progress | Disabled |
+| `memory` | Process memory usage | Disabled |
+| `files` | Lines added/removed | Disabled |
 
 ## Themes
 

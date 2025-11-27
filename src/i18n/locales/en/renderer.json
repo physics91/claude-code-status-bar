@@ -5,6 +5,7 @@
     "tok": "tok",
     "ctx": "CTX",
     "todo": "TODO",
+    "mem": "MEM",
     "noChanges": "no changes",
     "unknown": "unknown"
   }
