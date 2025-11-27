@@ -1,4 +1,7 @@
 import { ClaudeInputSchema, type ClaudeInputData } from '../types/claude-input.js';
+import { writeFileSync, appendFileSync } from 'fs';
+import { join } from 'path';
+import { homedir } from 'os';
 
 /**
  * stdin에서 JSON 데이터 읽기
@@ -44,15 +47,41 @@ export async function parseClaudeInput(): Promise<ClaudeInputData | null> {
     const raw = await readStdin();
 
     if (!raw) {
+      // 디버그: stdin이 비어있음
+      if (process.env.DEBUG_STATUSLINE) {
+        console.error('[statusline] No stdin data received');
+      }
       return null;
     }
 
+    // 디버그: 받은 데이터 출력
+    if (process.env.DEBUG_STATUSLINE) {
+      console.error('[statusline] Raw input:', raw.substring(0, 500));
+    }
+
     const parsed = JSON.parse(raw);
+
+    // 디버그: 파싱된 데이터 출력
+    if (process.env.DEBUG_STATUSLINE) {
+      console.error('[statusline] Parsed keys:', Object.keys(parsed));
+    }
+
+    // 디버그: 파일로 저장 (Claude Code가 전달하는 실제 데이터 확인용)
+    try {
+      const logPath = join(homedir(), '.claude', 'statusline-debug.json');
+      writeFileSync(logPath, JSON.stringify(parsed, null, 2));
+    } catch {
+      // 로그 저장 실패 무시
+    }
+
     const validated = ClaudeInputSchema.parse(parsed);
 
     return validated;
   } catch (error) {
-    // 파싱 실패 시 에러 출력하지 않음 (status bar가 깨지지 않도록)
+    // 디버그: 에러 출력
+    if (process.env.DEBUG_STATUSLINE) {
+      console.error('[statusline] Parse error:', error);
+    }
     return null;
   }
 }

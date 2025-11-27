@@ -13,7 +13,7 @@ export const powerlineDark: Theme = {
   colors: {
     segments: {
       model: { bg: '#5c6bc0', fg: '#ffffff' },
-      git: { bg: '#66bb6a', fg: '#1b5e20' },
+      git: { bg: '#ffffff', fg: '#37474f' },
       tokens: { bg: '#42a5f5', fg: '#0d47a1' },
       cost: { bg: '#ffa726', fg: '#e65100' },
       session: { bg: '#78909c', fg: '#263238' },

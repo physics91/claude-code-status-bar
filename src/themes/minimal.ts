@@ -13,7 +13,7 @@ export const minimal: Theme = {
   colors: {
     segments: {
       model: { bg: '#6366f1', fg: '#ffffff' },
-      git: { bg: '#22c55e', fg: '#ffffff' },
+      git: { bg: '#ffffff', fg: '#37474f' },
       tokens: { bg: '#3b82f6', fg: '#ffffff' },
       cost: { bg: '#f59e0b', fg: '#ffffff' },
       session: { bg: '#6b7280', fg: '#ffffff' },

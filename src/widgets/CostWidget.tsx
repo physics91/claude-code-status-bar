@@ -7,7 +7,8 @@ import { formatCost } from '../utils/format.js';
  * API 비용 위젯 컴포넌트
  */
 const CostWidgetComponent: React.FC<WidgetProps> = ({ data }) => {
-  const cost = data.cost?.api_cost ?? 0;
+  // total_cost_usd (새 필드) 우선, api_cost (이전 필드) fallback
+  const cost = data.cost?.total_cost_usd ?? data.cost?.api_cost ?? 0;
   const formattedCost = formatCost(cost);
 
   return <Text>{formattedCost}</Text>;

@@ -3,27 +3,36 @@ import { z } from 'zod';
 /**
  * Claude Code stdin JSON 스키마
  * /statusline 명령이 전달하는 데이터 구조
+ * 대부분의 필드를 optional로 설정하여 유연하게 처리
  */
 export const ClaudeInputSchema = z.object({
-  session_id: z.string(),
-  transcript_path: z.string(),
+  session_id: z.string().optional().default(''),
+  transcript_path: z.string().optional().default(''),
   model: z.object({
-    id: z.string(),
-    display_name: z.string(),
-  }),
+    id: z.string().optional().default('unknown'),
+    display_name: z.string().optional().default('Claude'),
+  }).optional().default({ id: 'unknown', display_name: 'Claude' }),
   workspace: z.object({
-    current_dir: z.string(),
-    project_dir: z.string(),
-  }),
+    current_dir: z.string().optional().default(''),
+    project_dir: z.string().optional().default(''),
+  }).optional().default({ current_dir: '', project_dir: '' }),
   cost: z.object({
+    // Claude Code 실제 필드명
+    total_cost_usd: z.number().optional(),
+    total_duration_ms: z.number().optional(),
+    total_api_duration_ms: z.number().optional(),  // 실제 API 호출 시간
+    total_lines_added: z.number().optional(),
+    total_lines_removed: z.number().optional(),
+    // 이전 버전 호환성
     api_cost: z.number().optional(),
     duration_ms: z.number().optional(),
     lines_added: z.number().optional(),
     lines_removed: z.number().optional(),
   }).optional(),
   version: z.string().optional(),
-  cwd: z.string(),
-});
+  cwd: z.string().optional().default(''),
+  // Claude Code가 전달할 수 있는 추가 필드들 허용
+}).passthrough();
 
 export type ClaudeInputData = z.infer<typeof ClaudeInputSchema>;
 

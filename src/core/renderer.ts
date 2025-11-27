@@ -1,11 +1,13 @@
-import chalk from 'chalk';
+import { Chalk } from 'chalk';
+// Force color output even when stdout is not a TTY (required for Claude Code statusline)
+const chalk = new Chalk({ level: 3 });
 import type { Theme } from '../themes/types.js';
 import type { ClaudeInputData } from '../types/claude-input.js';
 import type { WidgetDefinition } from '../widgets/types.js';
 import type { WidgetConfig } from '../types/state.js';
 import { shortenModelName, formatTokens, formatCost, formatDuration, shortenPath, formatPercent } from '../utils/format.js';
 import { getGitInfo } from '../utils/git.js';
-import { parseTranscript, calculateTotalTokens, extractTodoProgress, calculateContextUsage } from '../utils/transcript.js';
+import { parseTranscript, extractActualTokenUsage, extractTodoProgress } from '../utils/transcript.js';
 import { getModelMaxTokens } from '../types/claude-input.js';
 
 /**
@@ -38,25 +40,36 @@ function getWidgetContent(
       case 'git': {
         const gitInfo = getGitInfo(data.cwd || data.workspace?.current_dir);
         if (!gitInfo.branch) return null;
-        const branchIcon = theme.symbols.branch;
-        const modifiedIcon = gitInfo.isDirty ? ` ${theme.symbols.modified}` : '';
-        return `${branchIcon ? branchIcon + ' ' : ''}${gitInfo.branch}${modifiedIcon}`;
+
+        // 추가/제거 라인 수 (Claude Code에서 전달)
+        const linesAdded = data.cost?.total_lines_added ?? 0;
+        const linesRemoved = data.cost?.total_lines_removed ?? 0;
+
+        // 전체 흰색 배경에 각각 다른 전경색
+        const branch = chalk.hex('#37474f')(gitInfo.branch);  // 진한 회색
+        const added = chalk.hex('#2e7d32').bold(`+${linesAdded}`);  // 녹색
+        const removed = chalk.hex('#c62828').bold(`-${linesRemoved}`);  // 빨간색
+
+        // 전체를 흰색 배경으로 감싸기
+        return chalk.bgHex('#ffffff')(`${branch} ${added} ${removed}`);
       }
 
       case 'tokens': {
         let tokens = 0;
         if (data.transcript_path) {
-          const messages = parseTranscript(data.transcript_path);
-          tokens = calculateTotalTokens(messages);
+          const usage = extractActualTokenUsage(data.transcript_path);
+          tokens = usage.totalTokens;
         }
         return `${formatTokens(tokens)} tok`;
       }
 
       case 'cost':
-        return formatCost(data.cost?.api_cost ?? 0);
+        // total_cost_usd (새 필드) 우선, api_cost (이전 필드) fallback
+        return formatCost(data.cost?.total_cost_usd ?? data.cost?.api_cost ?? 0);
 
       case 'session':
-        return formatDuration(data.cost?.duration_ms ?? 0);
+        // total_duration_ms (전체 세션 시간) 사용
+        return formatDuration(data.cost?.total_duration_ms ?? data.cost?.duration_ms ?? 0);
 
       case 'cwd':
         return shortenPath(data.cwd || data.workspace?.current_dir || process.cwd(), 20);
@@ -64,9 +77,10 @@ function getWidgetContent(
       case 'context': {
         let usagePercent = 0;
         if (data.transcript_path) {
-          const messages = parseTranscript(data.transcript_path);
+          const usage = extractActualTokenUsage(data.transcript_path);
           const maxTokens = getModelMaxTokens(data.model?.id || '');
-          usagePercent = calculateContextUsage(messages, maxTokens);
+          // 현재 컨텍스트 크기 사용 (contextTokens)
+          usagePercent = Math.min((usage.contextTokens / maxTokens) * 100, 100);
         }
         const bar = createProgressBar(usagePercent, 8);
         return `CTX ${bar} ${formatPercent(usagePercent)}`;
@@ -102,8 +116,19 @@ function renderSegment(
   nextBgColor: string | null,
   separator: string
 ): string {
-  // 내용 렌더링
-  const segment = chalk.bgHex(bgColor).hex(fgColor)(` ${content} `);
+  // 내용 렌더링 - ANSI 코드가 이미 포함되어 있으면 배경색만 추가
+  const hasAnsi = content.includes('\x1b[');
+  let segment: string;
+
+  if (hasAnsi) {
+    // 이미 색상이 적용된 경우: 공백만 배경색 적용
+    const prefix = chalk.bgHex(bgColor)(' ');
+    const suffix = chalk.bgHex(bgColor)(' ');
+    segment = prefix + content + suffix;
+  } else {
+    // 색상이 없는 경우: 전체에 색상 적용
+    segment = chalk.bgHex(bgColor).hex(fgColor)(` ${content} `);
+  }
 
   // 구분자 렌더링
   let sep = '';

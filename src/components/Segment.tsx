@@ -1,6 +1,8 @@
 import React from 'react';
 import { Text } from 'ink';
-import chalk from 'chalk';
+import { Chalk } from 'chalk';
+// Force color output even when stdout is not a TTY
+const chalk = new Chalk({ level: 3 });
 import type { Theme, SegmentColors } from '../themes/types.js';
 
 export interface SegmentProps {

@@ -7,7 +7,8 @@ import { formatDuration } from '../utils/format.js';
  * 세션 시간 위젯 컴포넌트
  */
 const SessionWidgetComponent: React.FC<WidgetProps> = ({ data }) => {
-  const durationMs = data.cost?.duration_ms ?? 0;
+  // total_duration_ms (새 필드) 우선, duration_ms (이전 필드) fallback
+  const durationMs = data.cost?.total_duration_ms ?? data.cost?.duration_ms ?? 0;
   const formattedDuration = formatDuration(durationMs);
 
   return <Text>{formattedDuration}</Text>;
