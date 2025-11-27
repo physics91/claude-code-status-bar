@@ -30,8 +30,16 @@
     "terminal",
     "powerline"
   ],
-  "author": "",
+  "author": "physics91",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/physics91/claude-code-status-bar.git"
+  },
+  "bugs": {
+    "url": "https://github.com/physics91/claude-code-status-bar/issues"
+  },
+  "homepage": "https://github.com/physics91/claude-code-status-bar#readme",
   "dependencies": {
     "chalk": "^5.3.0",
     "commander": "^12.1.0",

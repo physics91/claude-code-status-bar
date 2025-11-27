@@ -27,3 +27,4 @@ coverage/
 
 # Config (user-specific)
 .claude-status-bar/
+.claude/
