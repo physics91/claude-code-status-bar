@@ -1,0 +1,53 @@
+{
+  "name": "claude-status-bar",
+  "version": "1.0.0",
+  "description": "Powerline-style status bar for Claude Code CLI with context window usage and todo progress tracking",
+  "type": "module",
+  "bin": {
+    "claude-status-bar": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "start": "node dist/index.js",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "statusline",
+    "status-bar",
+    "cli",
+    "terminal",
+    "powerline"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "ink": "^5.1.0",
+    "react": "^18.3.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^18.3.12",
+    "ink-testing-library": "^4.0.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.6"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
