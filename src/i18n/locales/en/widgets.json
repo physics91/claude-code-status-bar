@@ -1,0 +1,42 @@
+{
+  "model": {
+    "name": "Model",
+    "description": "Displays the current Claude model name"
+  },
+  "git": {
+    "name": "Git Branch",
+    "description": "Displays the current Git branch name"
+  },
+  "tokens": {
+    "name": "Token Usage",
+    "description": "Displays estimated token usage"
+  },
+  "cost": {
+    "name": "API Cost",
+    "description": "Displays the API cost for this session"
+  },
+  "session": {
+    "name": "Session Time",
+    "description": "Displays the session duration"
+  },
+  "cwd": {
+    "name": "Working Directory",
+    "description": "Displays the current working directory"
+  },
+  "context": {
+    "name": "Context Window",
+    "description": "Displays context window usage percentage"
+  },
+  "todo": {
+    "name": "Todo Progress",
+    "description": "Displays todo list progress"
+  },
+  "memory": {
+    "name": "Memory Usage",
+    "description": "Displays process memory usage"
+  },
+  "files": {
+    "name": "File Changes",
+    "description": "Displays lines added/removed"
+  }
+}

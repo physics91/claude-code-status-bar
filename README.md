@@ -1,6 +1,6 @@
 # Claude Status Bar
 
-> Powerline-style status bar for Claude Code CLI with context window usage and todo progress tracking
+> Powerline-style status bar for Claude Code CLI with i18n support (English/Korean)
 
 ## Features
 
@@ -10,6 +10,7 @@
 - **Todo Progress**: Track your task completion progress
 - **Multiple Themes**: powerline-dark, powerline-light, minimal
 - **Interactive TUI**: Configure widgets and themes with keyboard navigation
+- **i18n Support**: Full internationalization with English and Korean
 
 ## Quick Start
 
@@ -111,6 +112,7 @@ Configuration is stored in `~/.claude-status-bar/config.json`:
 {
   "version": 1,
   "theme": "powerline-dark",
+  "locale": "auto",
   "widgets": {
     "model": { "enabled": true, "order": 0 },
     "git": { "enabled": true, "order": 1 },
@@ -127,6 +129,18 @@ Configuration is stored in `~/.claude-status-bar/config.json`:
   }
 }
 ```
+
+## Internationalization (i18n)
+
+Claude Status Bar supports multiple languages:
+
+| Locale | Language |
+|--------|----------|
+| `en` | English (default) |
+| `ko` | 한국어 (Korean) |
+| `auto` | Auto-detect from system |
+
+The language is automatically detected from your system locale. You can also set it manually in the config file by changing the `locale` field.
 
 ## Context Window Widget
 

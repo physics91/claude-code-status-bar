@@ -3,6 +3,7 @@ import type { z } from 'zod';
 import type { ClaudeInputData } from '../types/claude-input.js';
 import type { Theme } from '../themes/types.js';
 import type { WidgetConfig } from '../types/state.js';
+import { t } from '../i18n/index.js';
 
 /**
  * 위젯 렌더링에 전달되는 Props
@@ -62,4 +63,30 @@ export interface IWidgetRegistry {
   get(id: string): WidgetDefinition | undefined;
   getAll(): WidgetDefinition[];
   getEnabled(widgetConfigs: Record<string, WidgetConfig>): WidgetDefinition[];
+}
+
+/**
+ * 위젯의 번역된 이름 가져오기
+ * i18n에서 widgets 네임스페이스의 번역을 사용합니다.
+ */
+export function getWidgetName(widget: WidgetDefinition): string {
+  const translated = t(`widgets:${widget.id}.name` as any);
+  // 번역이 없으면 기본 name 사용
+  if (translated === `${widget.id}.name`) {
+    return widget.name;
+  }
+  return translated;
+}
+
+/**
+ * 위젯의 번역된 설명 가져오기
+ * i18n에서 widgets 네임스페이스의 번역을 사용합니다.
+ */
+export function getWidgetDescription(widget: WidgetDefinition): string {
+  const translated = t(`widgets:${widget.id}.description` as any);
+  // 번역이 없으면 기본 description 사용
+  if (translated === `${widget.id}.description`) {
+    return widget.description;
+  }
+  return translated;
 }

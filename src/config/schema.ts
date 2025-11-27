@@ -23,6 +23,7 @@ export const BehaviorConfigSchema = z.object({
 export const AppConfigSchema = z.object({
   version: z.literal(1).default(1),
   theme: z.string().default('powerline-dark'),
+  locale: z.enum(['auto', 'en', 'ko']).default('auto'),
   widgets: z.record(WidgetConfigSchema).default({}),
   behavior: BehaviorConfigSchema.default({}),
 });

@@ -10,6 +10,7 @@ import { getGitInfo } from '../utils/git.js';
 import { parseTranscript, extractActualTokenUsage, extractTodoProgress } from '../utils/transcript.js';
 import { getModelMaxTokens } from '../types/claude-input.js';
 import { getTerminalWidth, getDisplayWidth } from '../utils/terminal.js';
+import { t } from '../i18n/index.js';
 
 /**
  * 프로그레스 바 생성
@@ -36,7 +37,7 @@ function getWidgetContent(
   try {
     switch (widgetId) {
       case 'model':
-        return shortenModelName(data.model?.display_name || data.model?.id || 'unknown');
+        return shortenModelName(data.model?.display_name || data.model?.id || t('renderer:labels.unknown'));
 
       case 'git': {
         const gitInfo = getGitInfo(data.cwd || data.workspace?.current_dir);
@@ -61,7 +62,7 @@ function getWidgetContent(
           const usage = extractActualTokenUsage(data.transcript_path);
           tokens = usage.totalTokens;
         }
-        return `${formatTokens(tokens)} tok`;
+        return `${formatTokens(tokens)} ${t('renderer:labels.tok')}`;
       }
 
       case 'cost':
@@ -84,7 +85,7 @@ function getWidgetContent(
           usagePercent = Math.min((usage.contextTokens / maxTokens) * 100, 100);
         }
         const bar = createProgressBar(usagePercent, 8);
-        return `CTX ${bar} ${formatPercent(usagePercent)}`;
+        return `${t('renderer:labels.ctx')} ${bar} ${formatPercent(usagePercent)}`;
       }
 
       case 'todo': {
@@ -95,7 +96,7 @@ function getWidgetContent(
         }
         if (todoProgress.total === 0) return null;
         const percent = Math.round((todoProgress.completed / todoProgress.total) * 100);
-        return `TODO ${todoProgress.completed}/${todoProgress.total} [${percent}%]`;
+        return `${t('renderer:labels.todo')} ${todoProgress.completed}/${todoProgress.total} [${percent}%]`;
       }
 
       default:
@@ -211,7 +212,7 @@ export function renderStatusBar(
   }
 
   if (segments.length === 0) {
-    return chalk.gray('No widgets to display');
+    return chalk.gray(t('renderer:noWidgets'));
   }
 
   // 터미널 너비에 맞게 세그먼트 필터링 (줄바꿈 방지)
@@ -220,7 +221,7 @@ export function renderStatusBar(
   segments = fitSegmentsToWidth(segments, separator, terminalWidth);
 
   if (segments.length === 0) {
-    return chalk.gray('...');
+    return chalk.gray(t('renderer:truncated'));
   }
 
   // Powerline 렌더링

@@ -1,0 +1,30 @@
+{
+  "description": "Powerline-style status bar for Claude Code CLI",
+  "commands": {
+    "render": {
+      "description": "Render the status bar (reads JSON from stdin)",
+      "demo": "Use demo data instead of stdin"
+    },
+    "config": {
+      "description": "Manage configuration (opens interactive TUI by default)",
+      "show": "Show current configuration as JSON",
+      "reset": "Reset to default configuration",
+      "theme": "Set theme"
+    },
+    "themes": {
+      "description": "List available themes"
+    },
+    "widgets": {
+      "description": "List available widgets"
+    }
+  },
+  "messages": {
+    "configReset": "Configuration reset to defaults.",
+    "themeSet": "Theme set to: {{theme}}",
+    "invalidTheme": "Invalid theme: {{theme}}. Available: {{available}}",
+    "availableThemes": "Available themes:",
+    "availableWidgets": "Available widgets:",
+    "current": "(current)",
+    "error": "Error:"
+  }
+}

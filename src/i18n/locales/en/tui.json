@@ -1,0 +1,16 @@
+{
+  "header": {
+    "title": "Claude Status Bar Configuration"
+  },
+  "tabs": {
+    "widgets": "Widgets",
+    "themes": "Themes"
+  },
+  "footer": {
+    "instructions": "\u2191\u2193: Navigate | Space: Toggle | Tab: Switch | S: Save | Q: Quit",
+    "saved": "Saved!"
+  },
+  "labels": {
+    "current": "(current)"
+  }
+}

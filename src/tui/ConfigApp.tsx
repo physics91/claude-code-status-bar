@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { Box, Text, useInput, useApp } from 'ink';
+import { useTranslation } from 'react-i18next';
 import { loadConfig, saveConfig } from '../config/loader.js';
 import { getAvailableThemes, getTheme } from '../themes/index.js';
 import { widgetRegistry, registerBuiltinWidgets } from '../widgets/index.js';
 import { renderStatusBar } from '../core/renderer.js';
 import { createMockClaudeInput } from '../cli/stdin-handler.js';
+import { getWidgetName, getWidgetDescription } from '../widgets/types.js';
 import type { AppConfigType } from '../config/schema.js';
 
 type Tab = 'widgets' | 'themes';
 
 export const ConfigApp: React.FC = () => {
   const { exit } = useApp();
+  const { t } = useTranslation('tui');
   const [config, setConfig] = useState<AppConfigType>(loadConfig());
   const [activeTab, setActiveTab] = useState<Tab>('widgets');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -93,7 +96,7 @@ export const ConfigApp: React.FC = () => {
       {/* 헤더 */}
       <Box marginBottom={1}>
         <Text bold color="cyan">
-          Claude Status Bar Configuration
+          {t('header.title')}
         </Text>
       </Box>
 
@@ -103,14 +106,14 @@ export const ConfigApp: React.FC = () => {
           bold={activeTab === 'widgets'}
           color={activeTab === 'widgets' ? 'green' : 'gray'}
         >
-          [Widgets]
+          [{t('tabs.widgets')}]
         </Text>
         <Text> </Text>
         <Text
           bold={activeTab === 'themes'}
           color={activeTab === 'themes' ? 'green' : 'gray'}
         >
-          [Themes]
+          [{t('tabs.themes')}]
         </Text>
       </Box>
 
@@ -135,31 +138,31 @@ export const ConfigApp: React.FC = () => {
                   bold={isSelected}
                   inverse={isSelected}
                 >
-                  {' '}{checkbox} {widget.name}
+                  {' '}{checkbox} {getWidgetName(widget)}
                 </Text>
                 {isSelected && (
-                  <Text color="gray"> - {widget.description}</Text>
+                  <Text color="gray"> - {getWidgetDescription(widget)}</Text>
                 )}
               </Box>
             );
           })
         ) : (
           // 테마 목록
-          themes.map((t, index) => {
-            const isCurrent = t.id === config.theme;
+          themes.map((themeItem, index) => {
+            const isCurrent = themeItem.id === config.theme;
             const isSelected = index === selectedIndex;
             const indicator = isCurrent ? '●' : '○';
 
             return (
-              <Box key={t.id}>
+              <Box key={themeItem.id}>
                 <Text
                   color={isSelected ? 'cyan' : undefined}
                   bold={isSelected}
                   inverse={isSelected}
                 >
-                  {' '}{indicator} {t.name}
+                  {' '}{indicator} {themeItem.name}
                 </Text>
-                {isCurrent && <Text color="green"> (current)</Text>}
+                {isCurrent && <Text color="green"> {t('labels.current')}</Text>}
               </Box>
             );
           })
@@ -169,9 +172,9 @@ export const ConfigApp: React.FC = () => {
       {/* 푸터 */}
       <Box borderStyle="single" borderColor="gray" paddingX={1}>
         <Text color="gray">
-          ↑↓: Navigate | Space: Toggle | Tab: Switch | S: Save | Q: Quit
+          {t('footer.instructions')}
         </Text>
-        {saved && <Text color="green"> | Saved!</Text>}
+        {saved && <Text color="green"> | {t('footer.saved')}</Text>}
       </Box>
     </Box>
   );

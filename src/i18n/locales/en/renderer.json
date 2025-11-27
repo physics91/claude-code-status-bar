@@ -1,0 +1,11 @@
+{
+  "noWidgets": "No widgets to display",
+  "truncated": "...",
+  "labels": {
+    "tok": "tok",
+    "ctx": "CTX",
+    "todo": "TODO",
+    "noChanges": "no changes",
+    "unknown": "unknown"
+  }
+}

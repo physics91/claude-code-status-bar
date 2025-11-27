@@ -5,21 +5,27 @@ import { loadConfig, saveConfig, configExists, defaultConfig } from './config/in
 import { getAvailableThemes } from './themes/index.js';
 import { registerBuiltinWidgets, widgetRegistry } from './widgets/index.js';
 import { runConfigTUI } from './tui/index.js';
+import { initI18n, t } from './i18n/index.js';
+import { getWidgetName, getWidgetDescription } from './widgets/types.js';
 
 // 패키지 정보
-const VERSION = '1.0.0';
+const VERSION = '1.2.0';
 const NAME = 'claude-status-bar';
+
+// i18n 초기화 (설정에서 로케일 로드)
+const config = loadConfig();
+initI18n(config.locale);
 
 program
   .name(NAME)
-  .description('Powerline-style status bar for Claude Code CLI')
+  .description(t('description'))
   .version(VERSION);
 
 // 기본 명령: Status Bar 렌더링
 program
   .command('render', { isDefault: true })
-  .description('Render the status bar (reads JSON from stdin)')
-  .option('--demo', 'Use demo data instead of stdin')
+  .description(t('commands.render.description'))
+  .option('--demo', t('commands.render.demo'))
   .action(async (options) => {
     try {
       let data;
@@ -37,7 +43,7 @@ program
 
       await renderApp(data);
     } catch (error) {
-      console.error('Error:', error);
+      console.error(t('messages.error'), error);
       process.exit(1);
     }
   });
@@ -45,38 +51,41 @@ program
 // config 명령: 설정 관리
 program
   .command('config')
-  .description('Manage configuration (opens interactive TUI by default)')
-  .option('--show', 'Show current configuration as JSON')
-  .option('--reset', 'Reset to default configuration')
-  .option('--theme <theme>', 'Set theme')
+  .description(t('commands.config.description'))
+  .option('--show', t('commands.config.show'))
+  .option('--reset', t('commands.config.reset'))
+  .option('--theme <theme>', t('commands.config.theme'))
   .action(async (options) => {
-    const config = loadConfig();
+    const currentConfig = loadConfig();
 
     if (options.show) {
-      console.log(JSON.stringify(config, null, 2));
+      console.log(JSON.stringify(currentConfig, null, 2));
       return;
     }
 
     if (options.reset) {
       saveConfig(defaultConfig);
-      console.log('Configuration reset to defaults.');
+      console.log(t('messages.configReset'));
       return;
     }
 
     if (options.theme) {
       const themes = getAvailableThemes();
-      const themeIds = themes.map((t) => t.id);
+      const themeIds = themes.map((theme) => theme.id);
 
       if (!themeIds.includes(options.theme)) {
         console.error(
-          `Invalid theme: ${options.theme}. Available: ${themeIds.join(', ')}`
+          t('messages.invalidTheme', {
+            theme: options.theme,
+            available: themeIds.join(', '),
+          })
         );
         process.exit(1);
       }
 
-      config.theme = options.theme;
-      saveConfig(config);
-      console.log(`Theme set to: ${options.theme}`);
+      currentConfig.theme = options.theme;
+      saveConfig(currentConfig);
+      console.log(t('messages.themeSet', { theme: options.theme }));
       return;
     }
 
@@ -87,14 +96,14 @@ program
 // themes 명령: 테마 목록
 program
   .command('themes')
-  .description('List available themes')
+  .description(t('commands.themes.description'))
   .action(() => {
     const themes = getAvailableThemes();
-    const config = loadConfig();
+    const currentConfig = loadConfig();
 
-    console.log('Available themes:\n');
+    console.log(t('messages.availableThemes') + '\n');
     for (const theme of themes) {
-      const current = theme.id === config.theme ? ' (current)' : '';
+      const current = theme.id === currentConfig.theme ? ` ${t('messages.current')}` : '';
       console.log(`  ${theme.id}${current}`);
       console.log(`    ${theme.name}`);
     }
@@ -103,18 +112,18 @@ program
 // widgets 명령: 위젯 목록
 program
   .command('widgets')
-  .description('List available widgets')
+  .description(t('commands.widgets.description'))
   .action(() => {
     registerBuiltinWidgets();
     const widgets = widgetRegistry.getAll();
-    const config = loadConfig();
+    const currentConfig = loadConfig();
 
-    console.log('Available widgets:\n');
+    console.log(t('messages.availableWidgets') + '\n');
     for (const widget of widgets) {
-      const enabled = config.widgets[widget.id]?.enabled ?? widget.defaultEnabled;
+      const enabled = currentConfig.widgets[widget.id]?.enabled ?? widget.defaultEnabled;
       const status = enabled ? '[x]' : '[ ]';
       console.log(`  ${status} ${widget.id}`);
-      console.log(`      ${widget.description}`);
+      console.log(`      ${getWidgetDescription(widget)}`);
     }
   });
 

@@ -1,0 +1,16 @@
+{
+  "header": {
+    "title": "Claude 상태바 설정"
+  },
+  "tabs": {
+    "widgets": "위젯",
+    "themes": "테마"
+  },
+  "footer": {
+    "instructions": "\u2191\u2193: 이동 | Space: 선택 | Tab: 탭 전환 | S: 저장 | Q: 종료",
+    "saved": "저장됨!"
+  },
+  "labels": {
+    "current": "(현재)"
+  }
+}

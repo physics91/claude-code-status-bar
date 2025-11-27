@@ -1,0 +1,30 @@
+{
+  "description": "Claude Code CLI용 Powerline 스타일 상태바",
+  "commands": {
+    "render": {
+      "description": "상태바 렌더링 (stdin에서 JSON 읽기)",
+      "demo": "stdin 대신 데모 데이터 사용"
+    },
+    "config": {
+      "description": "설정 관리 (기본: 대화형 TUI 실행)",
+      "show": "현재 설정을 JSON으로 표시",
+      "reset": "기본 설정으로 초기화",
+      "theme": "테마 설정"
+    },
+    "themes": {
+      "description": "사용 가능한 테마 목록"
+    },
+    "widgets": {
+      "description": "사용 가능한 위젯 목록"
+    }
+  },
+  "messages": {
+    "configReset": "설정이 기본값으로 초기화되었습니다.",
+    "themeSet": "테마 설정됨: {{theme}}",
+    "invalidTheme": "잘못된 테마: {{theme}}. 사용 가능: {{available}}",
+    "availableThemes": "사용 가능한 테마:",
+    "availableWidgets": "사용 가능한 위젯:",
+    "current": "(현재)",
+    "error": "오류:"
+  }
+}

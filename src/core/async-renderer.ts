@@ -23,6 +23,7 @@ import {
   getCachedWidgetContent,
   setCachedWidgetContent,
 } from './widget-cache.js';
+import { t } from '../i18n/index.js';
 
 /**
  * 캐시된 데이터를 포함한 확장 입력 데이터
@@ -86,7 +87,7 @@ function computeWidgetContent(
 
     switch (widgetId) {
       case 'model':
-        return shortenModelName(data.model?.display_name || data.model?.id || 'unknown');
+        return shortenModelName(data.model?.display_name || data.model?.id || t('renderer:labels.unknown'));
 
       case 'git': {
         if (!gitInfo?.branch) return null;
@@ -100,7 +101,7 @@ function computeWidgetContent(
 
       case 'tokens': {
         const tokens = transcriptData?.tokenUsage.totalTokens ?? 0;
-        return `${formatTokens(tokens)} tok`;
+        return `${formatTokens(tokens)} ${t('renderer:labels.tok')}`;
       }
 
       case 'cost':
@@ -117,14 +118,14 @@ function computeWidgetContent(
         const maxTokens = getModelMaxTokens(data.model?.id || '');
         const usagePercent = Math.min((contextTokens / maxTokens) * 100, 100);
         const bar = createProgressBar(usagePercent, 8);
-        return `CTX ${bar} ${formatPercent(usagePercent)}`;
+        return `${t('renderer:labels.ctx')} ${bar} ${formatPercent(usagePercent)}`;
       }
 
       case 'todo': {
         const todoProgress = transcriptData?.todoProgress ?? { completed: 0, total: 0 };
         if (todoProgress.total === 0) return null;
         const percent = Math.round((todoProgress.completed / todoProgress.total) * 100);
-        return `TODO ${todoProgress.completed}/${todoProgress.total} [${percent}%]`;
+        return `${t('renderer:labels.todo')} ${todoProgress.completed}/${todoProgress.total} [${percent}%]`;
       }
 
       case 'memory': {
@@ -139,7 +140,7 @@ function computeWidgetContent(
         const linesRemoved = gitInfo.linesRemoved;
 
         if (linesAdded === 0 && linesRemoved === 0) {
-          return 'no changes';
+          return t('renderer:labels.noChanges');
         }
 
         return `+${linesAdded}/-${linesRemoved}`;
@@ -269,7 +270,7 @@ export async function renderStatusBarAsync(
   );
 
   if (segments.length === 0) {
-    return chalk.gray('No widgets to display');
+    return chalk.gray(t('renderer:noWidgets'));
   }
 
   // 터미널 너비에 맞게 세그먼트 필터링 (줄바꿈 방지)
@@ -278,7 +279,7 @@ export async function renderStatusBarAsync(
   segments = fitSegmentsToWidth(segments, separator, terminalWidth);
 
   if (segments.length === 0) {
-    return chalk.gray('...');
+    return chalk.gray(t('renderer:truncated'));
   }
 
   // Powerline 렌더링
