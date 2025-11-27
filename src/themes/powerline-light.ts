@@ -20,6 +20,8 @@ export const powerlineLight: Theme = {
       cwd: { bg: '#7986cb', fg: '#1a237e' },
       context: { bg: '#ba68c8', fg: '#4a148c' },
       todo: { bg: '#4db6ac', fg: '#004d40' },
+      memory: { bg: '#f48fb1', fg: '#880e4f' },
+      files: { bg: '#81c784', fg: '#1b5e20' },
     },
     status: {
       normal: '#4caf50',

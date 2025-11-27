@@ -30,6 +30,8 @@ export interface ThemeColors {
     cwd: SegmentColors;
     context: SegmentColors;
     todo: SegmentColors;
+    memory: SegmentColors;
+    files: SegmentColors;
   };
   status: {
     normal: string;

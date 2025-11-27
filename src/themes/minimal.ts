@@ -20,6 +20,8 @@ export const minimal: Theme = {
       cwd: { bg: '#6366f1', fg: '#ffffff' },
       context: { bg: '#a855f7', fg: '#ffffff' },
       todo: { bg: '#14b8a6', fg: '#ffffff' },
+      memory: { bg: '#ec4899', fg: '#ffffff' },
+      files: { bg: '#22c55e', fg: '#ffffff' },
     },
     status: {
       normal: '#22c55e',

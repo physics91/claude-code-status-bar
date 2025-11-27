@@ -7,6 +7,8 @@ import { SessionWidget } from './SessionWidget.js';
 import { CwdWidget } from './CwdWidget.js';
 import { ContextWidget } from './ContextWidget.js';
 import { TodoWidget } from './TodoWidget.js';
+import { MemoryWidget } from './MemoryWidget.js';
+import { FilesWidget } from './FilesWidget.js';
 
 export * from './types.js';
 export * from './registry.js';
@@ -21,6 +23,8 @@ export function registerBuiltinWidgets(): void {
   widgetRegistry.register(CwdWidget);
   widgetRegistry.register(ContextWidget);
   widgetRegistry.register(TodoWidget);
+  widgetRegistry.register(MemoryWidget);
+  widgetRegistry.register(FilesWidget);
 }
 
 // 위젯 내보내기
@@ -33,4 +37,6 @@ export {
   CwdWidget,
   ContextWidget,
   TodoWidget,
+  MemoryWidget,
+  FilesWidget,
 };

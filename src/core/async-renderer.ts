@@ -1,15 +1,38 @@
+/**
+ * 비동기 Status Bar 렌더러
+ * 모든 데이터를 병렬로 수집하고 위젯을 병렬로 렌더링합니다.
+ */
+
 import { Chalk } from 'chalk';
-// Force color output even when stdout is not a TTY (required for Claude Code statusline)
 const chalk = new Chalk({ level: 3 });
+
 import type { Theme } from '../themes/types.js';
 import type { ClaudeInputData } from '../types/claude-input.js';
 import type { WidgetDefinition } from '../widgets/types.js';
 import type { WidgetConfig } from '../types/state.js';
+import type { TranscriptData } from '../utils/transcript-cache.js';
+import type { GitInfo } from '../utils/git-async.js';
+
 import { shortenModelName, formatTokens, formatCost, formatDuration, shortenPath, formatPercent } from '../utils/format.js';
-import { getGitInfo } from '../utils/git.js';
-import { parseTranscript, extractActualTokenUsage, extractTodoProgress } from '../utils/transcript.js';
+import { getGitInfoAsync } from '../utils/git-async.js';
+import { getTranscriptData } from '../utils/transcript-cache.js';
 import { getModelMaxTokens } from '../types/claude-input.js';
 import { getTerminalWidth, getDisplayWidth } from '../utils/terminal.js';
+import {
+  getWidgetCacheKey,
+  getCachedWidgetContent,
+  setCachedWidgetContent,
+} from './widget-cache.js';
+
+/**
+ * 캐시된 데이터를 포함한 확장 입력 데이터
+ */
+interface EnrichedData extends ClaudeInputData {
+  _cache?: {
+    transcriptData?: TranscriptData;
+    gitInfo?: GitInfo;
+  };
+}
 
 /**
  * 프로그레스 바 생성
@@ -26,83 +49,106 @@ function createProgressBar(
 }
 
 /**
- * 위젯 데이터 추출 (에러 경계 포함)
+ * 위젯 콘텐츠 추출 (캐시된 데이터 사용)
  */
-function getWidgetContent(
+function getWidgetContentWithCache(
   widgetId: string,
-  data: ClaudeInputData,
+  data: EnrichedData,
+  theme: Theme
+): string | null {
+  // 캐시 확인
+  const cacheKey = getWidgetCacheKey(widgetId, data);
+  const cached = getCachedWidgetContent(cacheKey);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  // 콘텐츠 계산
+  const content = computeWidgetContent(widgetId, data, theme);
+
+  // 캐시에 저장
+  setCachedWidgetContent(cacheKey, content);
+
+  return content;
+}
+
+/**
+ * 위젯 콘텐츠 계산
+ */
+function computeWidgetContent(
+  widgetId: string,
+  data: EnrichedData,
   theme: Theme
 ): string | null {
   try {
+    const transcriptData = data._cache?.transcriptData;
+    const gitInfo = data._cache?.gitInfo;
+
     switch (widgetId) {
       case 'model':
         return shortenModelName(data.model?.display_name || data.model?.id || 'unknown');
 
       case 'git': {
-        const gitInfo = getGitInfo(data.cwd || data.workspace?.current_dir);
-        if (!gitInfo.branch) return null;
+        if (!gitInfo?.branch) return null;
 
-        // 실제 git diff에서 추가/제거 라인 수 가져오기
-        const linesAdded = gitInfo.linesAdded;
-        const linesRemoved = gitInfo.linesRemoved;
+        const branch = chalk.hex('#37474f')(gitInfo.branch);
+        const added = chalk.hex('#2e7d32').bold(`+${gitInfo.linesAdded}`);
+        const removed = chalk.hex('#c62828').bold(`-${gitInfo.linesRemoved}`);
 
-        // 전체 흰색 배경에 각각 다른 전경색
-        const branch = chalk.hex('#37474f')(gitInfo.branch);  // 진한 회색
-        const added = chalk.hex('#2e7d32').bold(`+${linesAdded}`);  // 녹색
-        const removed = chalk.hex('#c62828').bold(`-${linesRemoved}`);  // 빨간색
-
-        // 전체를 흰색 배경으로 감싸기
         return chalk.bgHex('#ffffff')(`${branch} ${added} ${removed}`);
       }
 
       case 'tokens': {
-        let tokens = 0;
-        if (data.transcript_path) {
-          const usage = extractActualTokenUsage(data.transcript_path);
-          tokens = usage.totalTokens;
-        }
+        const tokens = transcriptData?.tokenUsage.totalTokens ?? 0;
         return `${formatTokens(tokens)} tok`;
       }
 
       case 'cost':
-        // total_cost_usd (새 필드) 우선, api_cost (이전 필드) fallback
         return formatCost(data.cost?.total_cost_usd ?? data.cost?.api_cost ?? 0);
 
       case 'session':
-        // total_duration_ms (전체 세션 시간) 사용
         return formatDuration(data.cost?.total_duration_ms ?? data.cost?.duration_ms ?? 0);
 
       case 'cwd':
         return shortenPath(data.cwd || data.workspace?.current_dir || process.cwd(), 20);
 
       case 'context': {
-        let usagePercent = 0;
-        if (data.transcript_path) {
-          const usage = extractActualTokenUsage(data.transcript_path);
-          const maxTokens = getModelMaxTokens(data.model?.id || '');
-          // 현재 컨텍스트 크기 사용 (contextTokens)
-          usagePercent = Math.min((usage.contextTokens / maxTokens) * 100, 100);
-        }
+        const contextTokens = transcriptData?.tokenUsage.contextTokens ?? 0;
+        const maxTokens = getModelMaxTokens(data.model?.id || '');
+        const usagePercent = Math.min((contextTokens / maxTokens) * 100, 100);
         const bar = createProgressBar(usagePercent, 8);
         return `CTX ${bar} ${formatPercent(usagePercent)}`;
       }
 
       case 'todo': {
-        let todoProgress = { completed: 0, inProgress: 0, pending: 0, total: 0 };
-        if (data.transcript_path) {
-          const messages = parseTranscript(data.transcript_path);
-          todoProgress = extractTodoProgress(messages);
-        }
+        const todoProgress = transcriptData?.todoProgress ?? { completed: 0, total: 0 };
         if (todoProgress.total === 0) return null;
         const percent = Math.round((todoProgress.completed / todoProgress.total) * 100);
         return `TODO ${todoProgress.completed}/${todoProgress.total} [${percent}%]`;
       }
 
+      case 'memory': {
+        const memory = process.memoryUsage();
+        const usedMB = (memory.heapUsed / 1024 / 1024).toFixed(0);
+        return `${usedMB} MB`;
+      }
+
+      case 'files': {
+        if (!gitInfo) return null;
+        const linesAdded = gitInfo.linesAdded;
+        const linesRemoved = gitInfo.linesRemoved;
+
+        if (linesAdded === 0 && linesRemoved === 0) {
+          return 'no changes';
+        }
+
+        return `+${linesAdded}/-${linesRemoved}`;
+      }
+
       default:
         return null;
     }
-  } catch (error) {
-    // 에러 발생 시 해당 위젯만 건너뜀 (전체 렌더링 실패 방지)
+  } catch {
     return null;
   }
 }
@@ -117,21 +163,17 @@ function renderSegment(
   nextBgColor: string | null,
   separator: string
 ): string {
-  // 내용 렌더링 - ANSI 코드가 이미 포함되어 있으면 배경색만 추가
   const hasAnsi = content.includes('\x1b[');
   let segment: string;
 
   if (hasAnsi) {
-    // 이미 색상이 적용된 경우: 공백만 배경색 적용
     const prefix = chalk.bgHex(bgColor)(' ');
     const suffix = chalk.bgHex(bgColor)(' ');
     segment = prefix + content + suffix;
   } else {
-    // 색상이 없는 경우: 전체에 색상 적용
     segment = chalk.bgHex(bgColor).hex(fgColor)(` ${content} `);
   }
 
-  // 구분자 렌더링
   let sep = '';
   if (nextBgColor) {
     sep = chalk.bgHex(nextBgColor).hex(bgColor)(separator);
@@ -146,7 +188,6 @@ function renderSegment(
  * 세그먼트의 표시 너비 계산 (ANSI 제외, 패딩 포함)
  */
 function getSegmentDisplayWidth(content: string, separator: string): number {
-  // 콘텐츠 너비 + 좌우 패딩(2) + 구분자(1)
   return getDisplayWidth(content) + 2 + getDisplayWidth(separator);
 }
 
@@ -159,7 +200,7 @@ function fitSegmentsToWidth(
   maxWidth: number
 ): Array<{ widget: WidgetDefinition; content: string }> {
   if (maxWidth <= 0) {
-    return segments; // 너비를 알 수 없으면 모든 세그먼트 표시
+    return segments;
   }
 
   const result: Array<{ widget: WidgetDefinition; content: string }> = [];
@@ -167,28 +208,42 @@ function fitSegmentsToWidth(
 
   for (const segment of segments) {
     const segmentWidth = getSegmentDisplayWidth(segment.content, separator);
-
-    // 다음 세그먼트를 추가해도 터미널 너비를 초과하지 않으면 추가
     if (currentWidth + segmentWidth <= maxWidth) {
       result.push(segment);
       currentWidth += segmentWidth;
     }
-    // 초과하면 더 이상 추가하지 않음 (중요한 위젯부터 표시되므로)
   }
 
   return result;
 }
 
 /**
- * 전체 Status Bar 렌더링
+ * 비동기 Status Bar 렌더링
+ * 모든 데이터를 병렬로 수집 후 렌더링
  */
-export function renderStatusBar(
+export async function renderStatusBarAsync(
   data: ClaudeInputData,
   theme: Theme,
   widgets: WidgetDefinition[],
   widgetConfigs: Record<string, WidgetConfig>
-): string {
-  // 활성화된 위젯만 필터링하고 순서대로 정렬
+): Promise<string> {
+  // 모든 비동기 데이터를 병렬로 수집
+  const [transcriptData, gitInfo] = await Promise.all([
+    // 트랜스크립트 데이터 (동기적이지만 캐싱됨)
+    Promise.resolve(
+      data.transcript_path ? getTranscriptData(data.transcript_path) : undefined
+    ),
+    // Git 정보 (비동기)
+    getGitInfoAsync(data.cwd || data.workspace?.current_dir),
+  ]);
+
+  // 캐시된 데이터를 포함한 확장 데이터 생성
+  const enrichedData: EnrichedData = {
+    ...data,
+    _cache: { transcriptData, gitInfo },
+  };
+
+  // 활성화된 위젯 필터링 및 정렬
   const activeWidgets = widgets
     .filter((widget) => {
       const config = widgetConfigs[widget.id];
@@ -200,15 +255,18 @@ export function renderStatusBar(
       return orderA - orderB;
     });
 
-  // 각 위젯의 내용 추출 (null 제외)
-  let segments: Array<{ widget: WidgetDefinition; content: string }> = [];
+  // 모든 위젯 콘텐츠를 병렬로 계산
+  const widgetPromises = activeWidgets.map(async (widget) => {
+    const content = getWidgetContentWithCache(widget.id, enrichedData, theme);
+    return { widget, content };
+  });
 
-  for (const widget of activeWidgets) {
-    const content = getWidgetContent(widget.id, data, theme);
-    if (content !== null) {
-      segments.push({ widget, content });
-    }
-  }
+  const results = await Promise.all(widgetPromises);
+
+  // null이 아닌 콘텐츠만 필터링
+  let segments = results.filter(
+    (r): r is { widget: WidgetDefinition; content: string } => r.content !== null
+  );
 
   if (segments.length === 0) {
     return chalk.gray('No widgets to display');
@@ -231,7 +289,7 @@ export function renderStatusBar(
     const colors = theme.colors.segments[widget.colorKey];
     const nextSegment = segments[i + 1];
     const nextBgColor = nextSegment
-      ? theme.colors.segments[nextSegment.widget.colorKey].bg
+      ? theme.colors.segments[nextSegment.widget.colorKey]?.bg
       : null;
 
     output += renderSegment(content, colors.bg, colors.fg, nextBgColor, separator);
