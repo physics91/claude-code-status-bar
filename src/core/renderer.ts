@@ -41,9 +41,9 @@ function getWidgetContent(
         const gitInfo = getGitInfo(data.cwd || data.workspace?.current_dir);
         if (!gitInfo.branch) return null;
 
-        // 추가/제거 라인 수 (Claude Code에서 전달)
-        const linesAdded = data.cost?.total_lines_added ?? 0;
-        const linesRemoved = data.cost?.total_lines_removed ?? 0;
+        // 실제 git diff에서 추가/제거 라인 수 가져오기
+        const linesAdded = gitInfo.linesAdded;
+        const linesRemoved = gitInfo.linesRemoved;
 
         // 전체 흰색 배경에 각각 다른 전경색
         const branch = chalk.hex('#37474f')(gitInfo.branch);  // 진한 회색

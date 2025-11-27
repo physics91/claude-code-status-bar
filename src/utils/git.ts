@@ -3,6 +3,8 @@ import { execSync } from 'child_process';
 interface GitInfo {
   branch: string | null;
   isDirty: boolean;
+  linesAdded: number;
+  linesRemoved: number;
 }
 
 // 캐시 (5초 TTL)
@@ -33,18 +35,48 @@ export function getGitInfo(cwd?: string): GitInfo {
 
     // 변경사항 확인
     let isDirty = false;
+    let linesAdded = 0;
+    let linesRemoved = 0;
     try {
       const status = execSync('git status --porcelain', options).trim();
       isDirty = status.length > 0;
+
+      // git diff --numstat로 추가/삭제 라인 수 가져오기 (staged + unstaged)
+      if (isDirty) {
+        // unstaged changes
+        const diffUnstaged = execSync('git diff --numstat', options).trim();
+        // staged changes
+        const diffStaged = execSync('git diff --cached --numstat', options).trim();
+
+        const parseDiff = (diff: string) => {
+          if (!diff) return { added: 0, removed: 0 };
+          let added = 0, removed = 0;
+          for (const line of diff.split('\n')) {
+            const parts = line.split('\t');
+            if (parts.length >= 2) {
+              const a = parseInt(parts[0], 10);
+              const r = parseInt(parts[1], 10);
+              if (!isNaN(a)) added += a;
+              if (!isNaN(r)) removed += r;
+            }
+          }
+          return { added, removed };
+        };
+
+        const unstaged = parseDiff(diffUnstaged);
+        const staged = parseDiff(diffStaged);
+        linesAdded = unstaged.added + staged.added;
+        linesRemoved = unstaged.removed + staged.removed;
+      }
     } catch {
       // ignore
     }
 
-    const result: GitInfo = { branch: branch || null, isDirty };
+    const result: GitInfo = { branch: branch || null, isDirty, linesAdded, linesRemoved };
     gitCache = { value: result, expires: now + CACHE_TTL };
     return result;
   } catch {
-    const result: GitInfo = { branch: null, isDirty: false };
+    const result: GitInfo = { branch: null, isDirty: false, linesAdded: 0, linesRemoved: 0 };
     gitCache = { value: result, expires: now + CACHE_TTL };
     return result;
   }
