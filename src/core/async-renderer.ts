@@ -136,14 +136,13 @@ function computeWidgetContent(
 
       case 'files': {
         if (!gitInfo) return null;
-        const linesAdded = gitInfo.linesAdded;
-        const linesRemoved = gitInfo.linesRemoved;
+        const filesChanged = gitInfo.filesChanged || 0;
 
-        if (linesAdded === 0 && linesRemoved === 0) {
-          return t('renderer:labels.noChanges');
+        if (filesChanged === 0) {
+          return null;
         }
 
-        return `+${linesAdded}/-${linesRemoved}`;
+        return `${filesChanged} ${t('renderer:labels.files')}`;
       }
 
       default:
@@ -156,13 +155,15 @@ function computeWidgetContent(
 
 /**
  * Powerline 세그먼트 렌더링
+ * @param isLastInLine - true이면 해당 라인의 마지막 세그먼트 (ANSI 리셋 필요)
  */
 function renderSegment(
   content: string,
   bgColor: string,
   fgColor: string,
   nextBgColor: string | null,
-  separator: string
+  separator: string,
+  isLastInLine = false
 ): string {
   const hasAnsi = content.includes('\x1b[');
   let segment: string;
@@ -176,10 +177,13 @@ function renderSegment(
   }
 
   let sep = '';
-  if (nextBgColor) {
+  if (isLastInLine) {
+    // 라인 끝: ANSI 리셋으로 색상 번짐 방지
+    sep = chalk.hex(bgColor)(separator) + '\x1b[0m';
+  } else if (nextBgColor) {
     sep = chalk.bgHex(nextBgColor).hex(bgColor)(separator);
   } else {
-    sep = chalk.hex(bgColor)(separator);
+    sep = chalk.hex(bgColor)(separator) + '\x1b[0m';
   }
 
   return segment + sep;
@@ -194,28 +198,15 @@ function getSegmentDisplayWidth(content: string, separator: string): number {
 
 /**
  * 터미널 너비에 맞게 세그먼트 필터링
+ * 수정: 모든 세그먼트를 반환하고 멀티라인으로 처리
  */
 function fitSegmentsToWidth(
   segments: Array<{ widget: WidgetDefinition; content: string }>,
-  separator: string,
-  maxWidth: number
+  _separator: string,
+  _maxWidth: number
 ): Array<{ widget: WidgetDefinition; content: string }> {
-  if (maxWidth <= 0) {
-    return segments;
-  }
-
-  const result: Array<{ widget: WidgetDefinition; content: string }> = [];
-  let currentWidth = 0;
-
-  for (const segment of segments) {
-    const segmentWidth = getSegmentDisplayWidth(segment.content, separator);
-    if (currentWidth + segmentWidth <= maxWidth) {
-      result.push(segment);
-      currentWidth += segmentWidth;
-    }
-  }
-
-  return result;
+  // 모든 세그먼트를 반환 - 멀티라인 처리는 renderStatusBarAsync에서 수행
+  return segments;
 }
 
 /**
@@ -273,27 +264,60 @@ export async function renderStatusBarAsync(
     return chalk.gray(t('renderer:noWidgets'));
   }
 
-  // 터미널 너비에 맞게 세그먼트 필터링 (줄바꿈 방지)
+  // 터미널 너비 가져오기
   const terminalWidth = getTerminalWidth();
   const separator = theme.symbols.separator;
+
+  // fitSegmentsToWidth는 이제 모든 세그먼트를 반환
   segments = fitSegmentsToWidth(segments, separator, terminalWidth);
 
   if (segments.length === 0) {
     return chalk.gray(t('renderer:truncated'));
   }
 
-  // Powerline 렌더링
+  // 멀티라인 Powerline 렌더링
   let output = '';
+  let currentLineWidth = 0;
+
+  // 현재 라인의 세그먼트들을 저장
+  interface LineSegment {
+    widget: WidgetDefinition;
+    content: string;
+    colors: { bg: string; fg: string };
+  }
+  let lineSegments: LineSegment[] = [];
 
   for (let i = 0; i < segments.length; i++) {
     const { widget, content } = segments[i];
     const colors = theme.colors.segments[widget.colorKey];
-    const nextSegment = segments[i + 1];
-    const nextBgColor = nextSegment
-      ? theme.colors.segments[nextSegment.widget.colorKey]?.bg
-      : null;
+    const segmentWidth = getSegmentDisplayWidth(content, separator);
 
-    output += renderSegment(content, colors.bg, colors.fg, nextBgColor, separator);
+    // 현재 라인에 추가하면 너비를 초과하는 경우
+    if (currentLineWidth > 0 && currentLineWidth + segmentWidth > terminalWidth) {
+      // 현재 라인의 세그먼트들 렌더링
+      for (let j = 0; j < lineSegments.length; j++) {
+        const seg = lineSegments[j];
+        const isLast = j === lineSegments.length - 1;
+        const nextSeg = lineSegments[j + 1];
+        const nextBgColor = isLast ? null : nextSeg?.colors.bg;
+        output += renderSegment(seg.content, seg.colors.bg, seg.colors.fg, nextBgColor, separator, isLast);
+      }
+      output += '\n';
+      lineSegments = [];
+      currentLineWidth = 0;
+    }
+
+    lineSegments.push({ widget, content, colors });
+    currentLineWidth += segmentWidth;
+  }
+
+  // 남은 세그먼트들 렌더링
+  for (let j = 0; j < lineSegments.length; j++) {
+    const seg = lineSegments[j];
+    const isLast = j === lineSegments.length - 1;
+    const nextSeg = lineSegments[j + 1];
+    const nextBgColor = isLast ? null : nextSeg?.colors.bg;
+    output += renderSegment(seg.content, seg.colors.bg, seg.colors.fg, nextBgColor, separator, isLast);
   }
 
   return output;

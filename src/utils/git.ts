@@ -5,6 +5,7 @@ interface GitInfo {
   isDirty: boolean;
   linesAdded: number;
   linesRemoved: number;
+  filesChanged: number;
 }
 
 // 캐시 (5초 TTL)
@@ -37,6 +38,7 @@ export function getGitInfo(cwd?: string): GitInfo {
     let isDirty = false;
     let linesAdded = 0;
     let linesRemoved = 0;
+    let filesChanged = 0;
     try {
       const status = execSync('git status --porcelain', options).trim();
       isDirty = status.length > 0;
@@ -49,8 +51,8 @@ export function getGitInfo(cwd?: string): GitInfo {
         const diffStaged = execSync('git diff --cached --numstat', options).trim();
 
         const parseDiff = (diff: string) => {
-          if (!diff) return { added: 0, removed: 0 };
-          let added = 0, removed = 0;
+          if (!diff) return { added: 0, removed: 0, files: 0 };
+          let added = 0, removed = 0, files = 0;
           for (const line of diff.split('\n')) {
             const parts = line.split('\t');
             if (parts.length >= 2) {
@@ -58,25 +60,27 @@ export function getGitInfo(cwd?: string): GitInfo {
               const r = parseInt(parts[1], 10);
               if (!isNaN(a)) added += a;
               if (!isNaN(r)) removed += r;
+              files++;
             }
           }
-          return { added, removed };
+          return { added, removed, files };
         };
 
         const unstaged = parseDiff(diffUnstaged);
         const staged = parseDiff(diffStaged);
         linesAdded = unstaged.added + staged.added;
         linesRemoved = unstaged.removed + staged.removed;
+        filesChanged = unstaged.files + staged.files;
       }
     } catch {
       // ignore
     }
 
-    const result: GitInfo = { branch: branch || null, isDirty, linesAdded, linesRemoved };
+    const result: GitInfo = { branch: branch || null, isDirty, linesAdded, linesRemoved, filesChanged };
     gitCache = { value: result, expires: now + CACHE_TTL };
     return result;
   } catch {
-    const result: GitInfo = { branch: null, isDirty: false, linesAdded: 0, linesRemoved: 0 };
+    const result: GitInfo = { branch: null, isDirty: false, linesAdded: 0, linesRemoved: 0, filesChanged: 0 };
     gitCache = { value: result, expires: now + CACHE_TTL };
     return result;
   }

@@ -7,6 +7,7 @@
     "todo": "TODO",
     "mem": "MEM",
     "noChanges": "no changes",
-    "unknown": "unknown"
+    "unknown": "unknown",
+    "files": "files"
   }
 }
