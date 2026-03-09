@@ -14,47 +14,22 @@ import {
 } from '../utils/format.js';
 import { getModelMaxTokens } from '../types/claude-input.js';
 import { t } from '../i18n/index.js';
+import { formatUsageSummary, type UsageSnapshot } from '../utils/usage-probe.js';
 
 const chalk = new Chalk({ level: 3 });
-
-const defaultBehavior: BehaviorConfigType = {
-  contextWarningThreshold: 70,
-  contextDangerThreshold: 90,
-};
 
 export interface WidgetContentContext {
   transcriptData?: TranscriptData;
   gitInfo?: GitInfo;
+  usageSnapshot?: UsageSnapshot;
   behavior?: BehaviorConfigType;
 }
 
-export function createProgressBar(
-  percent: number,
-  width = 10,
-  filledChar = '█',
-  emptyChar = '░'
-): string {
-  const filled = Math.round((percent / 100) * width);
-  const empty = width - filled;
-  return filledChar.repeat(filled) + emptyChar.repeat(empty);
-}
-
-function getContextBarColor(
-  percent: number,
-  theme: Theme,
-  behavior?: BehaviorConfigType
-): string {
-  const thresholds = behavior ?? defaultBehavior;
-
-  if (percent >= thresholds.contextDangerThreshold) {
-    return theme.colors.progress.critical;
-  }
-
-  if (percent >= thresholds.contextWarningThreshold) {
-    return theme.colors.progress.warning;
-  }
-
-  return theme.colors.progress.filled;
+function formatUsageContent(snapshot: UsageSnapshot): string {
+  return formatUsageSummary(snapshot, {
+    fiveHour: t('renderer:labels.usage5h'),
+    weekly: t('renderer:labels.usageWeek'),
+  });
 }
 
 export function getWidgetContent(
@@ -95,6 +70,9 @@ export function getWidgetContent(
       case 'session':
         return formatDuration(data.cost?.total_duration_ms ?? data.cost?.duration_ms ?? 0);
 
+      case 'usage':
+        return context.usageSnapshot ? formatUsageContent(context.usageSnapshot) : null;
+
       case 'cwd':
         return shortenPath(data.cwd || data.workspace?.current_dir || process.cwd(), 20);
 
@@ -102,9 +80,7 @@ export function getWidgetContent(
         const contextTokens = transcriptData?.tokenUsage.contextTokens ?? 0;
         const maxTokens = getModelMaxTokens(data.model?.id || '');
         const usagePercent = Math.min((contextTokens / maxTokens) * 100, 100);
-        const bar = createProgressBar(usagePercent, 8);
-        const coloredBar = chalk.hex(getContextBarColor(usagePercent, theme, context.behavior))(bar);
-        return `${t('renderer:labels.ctx')} ${coloredBar} ${formatPercent(usagePercent)}`;
+        return `${t('renderer:labels.ctx')} ${formatPercent(usagePercent)}`;
       }
 
       case 'todo': {

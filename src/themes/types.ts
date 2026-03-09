@@ -27,6 +27,7 @@ export interface ThemeColors {
     tokens: SegmentColors;
     cost: SegmentColors;
     session: SegmentColors;
+    usage: SegmentColors;
     cwd: SegmentColors;
     context: SegmentColors;
     todo: SegmentColors;

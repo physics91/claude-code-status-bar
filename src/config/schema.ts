@@ -15,6 +15,10 @@ export const WidgetConfigSchema = z.object({
 export const BehaviorConfigSchema = z.object({
   contextWarningThreshold: z.number().min(0).max(100).default(70),
   contextDangerThreshold: z.number().min(0).max(100).default(90),
+  usageRefreshMs: z.number().int().min(1000).default(60_000),
+  usageProbeTimeoutMs: z.number().int().min(1000).default(8_000),
+  usageStaleMaxMs: z.number().int().min(1000).default(600_000),
+  claudeExecutable: z.string().min(1).default('claude'),
 });
 
 /**

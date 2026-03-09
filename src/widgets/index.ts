@@ -4,6 +4,7 @@ import { GitBranchWidget } from './GitBranchWidget.js';
 import { TokensWidget } from './TokensWidget.js';
 import { CostWidget } from './CostWidget.js';
 import { SessionWidget } from './SessionWidget.js';
+import { UsageWidget } from './UsageWidget.js';
 import { CwdWidget } from './CwdWidget.js';
 import { ContextWidget } from './ContextWidget.js';
 import { TodoWidget } from './TodoWidget.js';
@@ -19,6 +20,7 @@ const builtinWidgets = [
   TokensWidget,
   CostWidget,
   SessionWidget,
+  UsageWidget,
   CwdWidget,
   ContextWidget,
   TodoWidget,
@@ -42,6 +44,7 @@ export {
   TokensWidget,
   CostWidget,
   SessionWidget,
+  UsageWidget,
   CwdWidget,
   ContextWidget,
   TodoWidget,

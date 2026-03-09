@@ -8,6 +8,7 @@ import type { WidgetConfig } from '../types/state.js';
 import type { BehaviorConfigType } from '../config/schema.js';
 import { getGitInfo } from '../utils/git.js';
 import { getTranscriptData } from '../utils/transcript-cache.js';
+import { getCachedUsageSnapshot } from '../utils/usage-probe.js';
 import { getTerminalWidth, getDisplayWidth } from '../utils/terminal.js';
 import { t } from '../i18n/index.js';
 import { getWidgetContent } from './widget-content.js';
@@ -86,11 +87,6 @@ export function renderStatusBar(
   widgetConfigs: Record<string, WidgetConfig>,
   behaviorConfig?: BehaviorConfigType
 ): string {
-  const gitInfo = getGitInfo(data.cwd || data.workspace?.current_dir);
-  const transcriptData = data.transcript_path
-    ? getTranscriptData(data.transcript_path)
-    : undefined;
-
   // 활성화된 위젯만 필터링하고 순서대로 정렬
   const activeWidgets = widgets
     .filter((widget) => {
@@ -103,6 +99,22 @@ export function renderStatusBar(
       return orderA - orderB;
     });
 
+  const needsGit = activeWidgets.some((widget) =>
+    ['git', 'files'].includes(widget.id)
+  );
+  const needsTranscript = activeWidgets.some((widget) =>
+    ['tokens', 'context', 'todo'].includes(widget.id)
+  );
+  const needsUsage = activeWidgets.some((widget) => widget.id === 'usage');
+
+  const gitInfo = needsGit
+    ? getGitInfo(data.cwd || data.workspace?.current_dir)
+    : undefined;
+  const transcriptData = needsTranscript && data.transcript_path
+    ? getTranscriptData(data.transcript_path)
+    : undefined;
+  const usageSnapshot = needsUsage ? getCachedUsageSnapshot(behaviorConfig) : undefined;
+
   // 각 위젯의 내용 추출 (null 제외)
   let segments: Array<{ widget: WidgetDefinition; content: string }> = [];
 
@@ -110,6 +122,7 @@ export function renderStatusBar(
     const content = getWidgetContent(widget.id, data, theme, {
       gitInfo,
       transcriptData,
+      usageSnapshot,
       behavior: behaviorConfig,
     });
     if (content !== null) {

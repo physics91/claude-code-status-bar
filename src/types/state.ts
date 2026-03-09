@@ -28,6 +28,11 @@ export interface StatusBarState {
     usagePercent: number;
     level: 'normal' | 'warning' | 'danger';
   };
+  usage?: {
+    fiveHourPercent: number;
+    weeklyPercent: number;
+    stale: boolean;
+  };
   todo: {
     completed: number;
     inProgress: number;
@@ -56,5 +61,9 @@ export interface AppConfig {
   behavior: {
     contextWarningThreshold: number;
     contextDangerThreshold: number;
+    usageRefreshMs: number;
+    usageProbeTimeoutMs: number;
+    usageStaleMaxMs: number;
+    claudeExecutable: string;
   };
 }

@@ -13,9 +13,11 @@ import type { WidgetConfig } from '../types/state.js';
 import type { BehaviorConfigType } from '../config/schema.js';
 import type { TranscriptData } from '../utils/transcript-cache.js';
 import type { GitInfo } from '../utils/git-async.js';
+import type { UsageSnapshot } from '../utils/usage-probe.js';
 
 import { getGitInfoAsync } from '../utils/git-async.js';
 import { getTranscriptData } from '../utils/transcript-cache.js';
+import { getUsageSnapshot } from '../utils/usage-probe.js';
 import { getTerminalWidth, getDisplayWidth } from '../utils/terminal.js';
 import {
   getWidgetCacheKey,
@@ -34,6 +36,7 @@ function getWidgetContentWithCache(
   theme: Theme,
   transcriptData: TranscriptData | undefined,
   gitInfo: GitInfo | undefined,
+  usageSnapshot: UsageSnapshot | undefined,
   behaviorConfig?: BehaviorConfigType
 ): string | null {
   // 캐시 확인
@@ -47,6 +50,7 @@ function getWidgetContentWithCache(
   const content = getWidgetContent(widgetId, data, theme, {
     transcriptData,
     gitInfo,
+    usageSnapshot,
     behavior: behaviorConfig,
   });
 
@@ -123,17 +127,6 @@ export async function renderStatusBarAsync(
   widgetConfigs: Record<string, WidgetConfig>,
   behaviorConfig?: BehaviorConfigType
 ): Promise<string> {
-  // 모든 비동기 데이터를 병렬로 수집
-  const [transcriptData, gitInfo] = await Promise.all([
-    // 트랜스크립트 데이터 (동기적이지만 캐싱됨)
-    Promise.resolve(
-      data.transcript_path ? getTranscriptData(data.transcript_path) : undefined
-    ),
-    // Git 정보 (비동기)
-    getGitInfoAsync(data.cwd || data.workspace?.current_dir),
-  ]);
-
-  // 활성화된 위젯 필터링 및 정렬
   const activeWidgets = widgets
     .filter((widget) => {
       const config = widgetConfigs[widget.id];
@@ -145,6 +138,25 @@ export async function renderStatusBarAsync(
       return orderA - orderB;
     });
 
+  const needsTranscript = activeWidgets.some((widget) =>
+    ['tokens', 'context', 'todo'].includes(widget.id)
+  );
+  const needsGit = activeWidgets.some((widget) =>
+    ['git', 'files'].includes(widget.id)
+  );
+  const needsUsage = activeWidgets.some((widget) => widget.id === 'usage');
+
+  // 모든 비동기 데이터를 병렬로 수집
+  const [transcriptData, gitInfo, usageSnapshot] = await Promise.all([
+    // 트랜스크립트 데이터 (동기적이지만 캐싱됨)
+    Promise.resolve(
+      needsTranscript && data.transcript_path ? getTranscriptData(data.transcript_path) : undefined
+    ),
+    // Git 정보 (비동기)
+    needsGit ? getGitInfoAsync(data.cwd || data.workspace?.current_dir) : Promise.resolve(undefined),
+    needsUsage ? getUsageSnapshot(behaviorConfig) : Promise.resolve(undefined),
+  ]);
+
   // 모든 위젯 콘텐츠를 병렬로 계산
   const widgetPromises = activeWidgets.map(async (widget) => {
     const content = getWidgetContentWithCache(
@@ -153,6 +165,7 @@ export async function renderStatusBarAsync(
       theme,
       transcriptData,
       gitInfo,
+      usageSnapshot,
       behaviorConfig
     );
     return { widget, content };

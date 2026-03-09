@@ -17,6 +17,7 @@ export const powerlineDark: Theme = {
       tokens: { bg: '#42a5f5', fg: '#0d47a1' },
       cost: { bg: '#ffa726', fg: '#e65100' },
       session: { bg: '#78909c', fg: '#263238' },
+      usage: { bg: '#26c6da', fg: '#004d40' },
       cwd: { bg: '#5c6bc0', fg: '#ffffff' },
       context: { bg: '#ab47bc', fg: '#ffffff' },
       todo: { bg: '#26a69a', fg: '#004d40' },

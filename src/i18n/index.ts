@@ -35,6 +35,49 @@ export const resources = {
 let initialized = false;
 let currentLocale: SupportedLanguage = 'en';
 
+function installI18nBannerSuppression(): void {
+  if ((globalThis as { __claudeStatusBarI18nBannerSuppressed?: boolean })
+    .__claudeStatusBarI18nBannerSuppressed) {
+    return;
+  }
+
+  const suppressedPatterns = [
+    'i18next is maintained with support from Locize',
+    'locize.com',
+    'managed localization',
+  ];
+
+  const originalLog = console.log;
+  const originalInfo = console.info;
+  const originalWarn = console.warn;
+
+  const shouldSuppress = (args: unknown[]): boolean =>
+    args.some(
+      (arg) =>
+        typeof arg === 'string' &&
+        suppressedPatterns.some((pattern) => arg.includes(pattern))
+    );
+
+  const createFilteredLogger = (
+    original: typeof console.log
+  ): typeof console.log => (...args: Parameters<typeof console.log>) => {
+    if (shouldSuppress(args)) {
+      return;
+    }
+
+    original(...args);
+  };
+
+  console.log = createFilteredLogger(originalLog);
+  console.info = createFilteredLogger(originalInfo);
+  console.warn = createFilteredLogger(originalWarn);
+
+  (globalThis as { __claudeStatusBarI18nBannerSuppressed?: boolean })
+    .__claudeStatusBarI18nBannerSuppressed = true;
+}
+
+installI18nBannerSuppression();
+
 /**
  * i18n 초기화
  * @param locale 로케일 설정 ('auto', 'en', 'ko')

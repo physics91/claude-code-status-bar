@@ -5,7 +5,7 @@
 ## Features
 
 - **Powerline Style**: Beautiful arrow separators with customizable colors
-- **10 Built-in Widgets**: Model, Git branch, Tokens, Cost, Session time, CWD, Context window, Todo progress, Memory usage, File changes
+- **11 Built-in Widgets**: Model, Git branch, Tokens, Cost, Session time, Usage, CWD, Context window, Todo progress, Memory usage, File changes
 - **Multiline Support** (v1.3.0): Automatically wraps to multiple lines when terminal width is exceeded - no widgets are hidden
 - **Context Window Usage**: Real-time visualization of context window consumption
 - **Todo Progress**: Track your task completion progress
@@ -90,6 +90,7 @@ claude-status-bar widgets
 | `tokens` | Estimated token usage | Enabled |
 | `cost` | API cost for session | Enabled |
 | `session` | Session duration | Enabled |
+| `usage` | Current 5-hour and weekly Claude usage | Disabled |
 | `cwd` | Current working directory | Enabled |
 | `context` | Context window usage (%) | Enabled |
 | `todo` | Todo list progress | Disabled |
@@ -122,13 +123,18 @@ Configuration is stored in `~/.claude-status-bar/config.json`:
     "tokens": { "enabled": true, "order": 2 },
     "cost": { "enabled": true, "order": 3 },
     "session": { "enabled": true, "order": 4 },
-    "cwd": { "enabled": true, "order": 5 },
-    "context": { "enabled": true, "order": 6 },
-    "todo": { "enabled": false, "order": 7 }
+    "usage": { "enabled": false, "order": 5 },
+    "cwd": { "enabled": true, "order": 6 },
+    "context": { "enabled": true, "order": 7 },
+    "todo": { "enabled": false, "order": 8 }
   },
   "behavior": {
     "contextWarningThreshold": 70,
-    "contextDangerThreshold": 90
+    "contextDangerThreshold": 90,
+    "usageRefreshMs": 60000,
+    "usageProbeTimeoutMs": 8000,
+    "usageStaleMaxMs": 600000,
+    "claudeExecutable": "claude"
   }
 }
 ```
@@ -150,12 +156,20 @@ The language is automatically detected from your system locale. You can also set
 The context window widget shows how much of Claude's memory is being used:
 
 ```
-CTX [████████░░] 78%
+context 78%
 ```
 
-- **Green (0-70%)**: Normal usage
-- **Yellow (70-90%)**: Consider summarizing
-- **Red (90-100%)**: Near limit
+## Usage Widget
+
+Shows Claude CLI usage from the local `/usage` screen:
+
+```
+5h 4% | Wk 14%
+```
+
+- Requires an authenticated local `claude` CLI on your `PATH`
+- Uses a PTY probe and caches results for 60 seconds
+- Hides itself if usage data cannot be parsed
 
 ## Todo Progress Widget
 

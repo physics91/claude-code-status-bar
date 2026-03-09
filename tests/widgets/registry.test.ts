@@ -8,7 +8,7 @@ describe('WidgetRegistry', () => {
 
   it('registers builtin widgets', () => {
     registerBuiltinWidgets();
-    expect(widgetRegistry.size).toBe(10);
+    expect(widgetRegistry.size).toBe(11);
   });
 
   it('registers builtin widgets idempotently', () => {
@@ -17,7 +17,7 @@ describe('WidgetRegistry', () => {
     registerBuiltinWidgets();
     registerBuiltinWidgets();
 
-    expect(widgetRegistry.size).toBe(10);
+    expect(widgetRegistry.size).toBe(11);
     expect(warnSpy).not.toHaveBeenCalled();
 
     warnSpy.mockRestore();
@@ -40,8 +40,9 @@ describe('WidgetRegistry', () => {
   it('gets all widgets', () => {
     registerBuiltinWidgets();
     const widgets = widgetRegistry.getAll();
-    expect(widgets.length).toBe(10);
+    expect(widgets.length).toBe(11);
     expect(widgets.map((w) => w.id)).toContain('model');
+    expect(widgets.map((w) => w.id)).toContain('usage');
     expect(widgets.map((w) => w.id)).toContain('context');
     expect(widgets.map((w) => w.id)).toContain('todo');
     expect(widgets.map((w) => w.id)).toContain('memory');
@@ -53,6 +54,7 @@ describe('WidgetRegistry', () => {
     const enabled = widgetRegistry.getEnabled({});
 
     // Todo, Memory, Files are disabled by default
+    expect(enabled.map((w) => w.id)).not.toContain('usage');
     expect(enabled.map((w) => w.id)).not.toContain('todo');
     expect(enabled.map((w) => w.id)).not.toContain('memory');
     expect(enabled.map((w) => w.id)).not.toContain('files');

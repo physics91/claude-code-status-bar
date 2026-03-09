@@ -70,7 +70,9 @@ describe.sequential('config loader', () => {
 
     const saved = JSON.parse(readFileSync(outputPath, 'utf-8'));
     expect(saved.locale).toBe('auto');
-    expect(saved.widgets.memory).toEqual({ enabled: false, order: 8 });
-    expect(saved.widgets.files).toEqual({ enabled: false, order: 9 });
+    expect(saved.widgets.usage).toEqual({ enabled: false, order: 5 });
+    expect(saved.widgets.memory).toEqual({ enabled: false, order: 9 });
+    expect(saved.widgets.files).toEqual({ enabled: false, order: 10 });
+    expect(saved.behavior.usageRefreshMs).toBe(60_000);
   });
 });

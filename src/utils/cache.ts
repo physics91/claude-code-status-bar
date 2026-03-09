@@ -116,6 +116,13 @@ export class Cache<T> {
   }
 
   /**
+   * TTL 검사 없이 원본 엔트리 조회
+   */
+  peekEntry(key: string): Readonly<CacheEntry<T>> | undefined {
+    return this.cache.get(key);
+  }
+
+  /**
    * 캐시 크기 반환
    */
   get size(): number {

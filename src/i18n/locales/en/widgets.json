@@ -19,6 +19,10 @@
     "name": "Session Time",
     "description": "Displays the session duration"
   },
+  "usage": {
+    "name": "Usage",
+    "description": "Displays current 5-hour and weekly Claude usage"
+  },
   "cwd": {
     "name": "Working Directory",
     "description": "Displays the current working directory"

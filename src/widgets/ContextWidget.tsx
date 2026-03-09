@@ -9,23 +9,9 @@ import {
 import { getModelMaxTokens } from '../types/claude-input.js';
 
 /**
- * 프로그레스 바 생성
- */
-function createProgressBar(
-  percent: number,
-  width = 10,
-  filledChar = '█',
-  emptyChar = '░'
-): string {
-  const filled = Math.round((percent / 100) * width);
-  const empty = width - filled;
-  return filledChar.repeat(filled) + emptyChar.repeat(empty);
-}
-
-/**
  * 컨텍스트 윈도우 사용률 위젯 컴포넌트
  */
-const ContextWidgetComponent: React.FC<WidgetProps> = ({ data, theme }) => {
+const ContextWidgetComponent: React.FC<WidgetProps> = ({ data }) => {
   let usagePercent = 0;
 
   // Transcript에서 컨텍스트 사용률 계산
@@ -39,22 +25,9 @@ const ContextWidgetComponent: React.FC<WidgetProps> = ({ data, theme }) => {
     }
   }
 
-  // 상태에 따른 색상 결정
-  let statusColor = theme.colors.progress.filled;
-  if (usagePercent >= 90) {
-    statusColor = theme.colors.progress.critical;
-  } else if (usagePercent >= 70) {
-    statusColor = theme.colors.progress.warning;
-  }
-
-  const progressBar = createProgressBar(usagePercent);
   const percentText = formatPercent(usagePercent);
 
-  return (
-    <Text>
-      CTX <Text color={statusColor}>{progressBar}</Text> {percentText}
-    </Text>
-  );
+  return <Text>context {percentText}</Text>;
 };
 
 /**

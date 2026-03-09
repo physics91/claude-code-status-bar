@@ -17,6 +17,7 @@ export const minimal: Theme = {
       tokens: { bg: '#3b82f6', fg: '#ffffff' },
       cost: { bg: '#f59e0b', fg: '#ffffff' },
       session: { bg: '#6b7280', fg: '#ffffff' },
+      usage: { bg: '#06b6d4', fg: '#ffffff' },
       cwd: { bg: '#6366f1', fg: '#ffffff' },
       context: { bg: '#a855f7', fg: '#ffffff' },
       todo: { bg: '#14b8a6', fg: '#ffffff' },

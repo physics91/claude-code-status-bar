@@ -71,6 +71,7 @@ export interface WidgetsTranslations {
   tokens: WidgetTranslation;
   cost: WidgetTranslation;
   session: WidgetTranslation;
+  usage: WidgetTranslation;
   cwd: WidgetTranslation;
   context: WidgetTranslation;
   todo: WidgetTranslation;
@@ -85,6 +86,8 @@ export interface RendererTranslations {
   labels: {
     tok: string;
     ctx: string;
+    usage5h: string;
+    usageWeek: string;
     todo: string;
     mem: string;
     files: string;

@@ -55,6 +55,13 @@ function computeDataHash(widgetId: string, data: ClaudeInputData): string {
       });
       break;
 
+    case 'usage':
+      relevantData = JSON.stringify({
+        sessionId: data.session_id,
+        cwd: data.cwd || data.workspace?.current_dir,
+      });
+      break;
+
     case 'memory':
       // 메모리 위젯은 매번 새로 계산 (프로세스 상태 변경)
       relevantData = Date.now().toString();

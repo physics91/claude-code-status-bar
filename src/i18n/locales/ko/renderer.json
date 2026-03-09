@@ -3,7 +3,9 @@
   "truncated": "...",
   "labels": {
     "tok": "토큰",
-    "ctx": "컨텍스트",
+    "ctx": "context",
+    "usage5h": "5시간",
+    "usageWeek": "주간",
     "todo": "할일",
     "mem": "메모리",
     "noChanges": "변경 없음",

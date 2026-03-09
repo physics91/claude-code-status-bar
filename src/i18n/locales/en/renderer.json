@@ -3,7 +3,9 @@
   "truncated": "...",
   "labels": {
     "tok": "tok",
-    "ctx": "CTX",
+    "ctx": "context",
+    "usage5h": "5h",
+    "usageWeek": "Wk",
     "todo": "TODO",
     "mem": "MEM",
     "noChanges": "no changes",
