@@ -1,7 +1,12 @@
 import { ClaudeInputSchema, type ClaudeInputData } from '../types/claude-input.js';
-import { writeFileSync, appendFileSync } from 'fs';
-import { join } from 'path';
+import { writeFileSync, mkdirSync } from 'fs';
+import { dirname, join } from 'path';
 import { homedir } from 'os';
+
+export type ClaudeInputParseResult =
+  | { status: 'empty' }
+  | { status: 'ok'; data: ClaudeInputData }
+  | { status: 'invalid'; error: Error };
 
 /**
  * stdin에서 JSON 데이터 읽기
@@ -42,48 +47,72 @@ export async function readStdin(): Promise<string> {
 /**
  * stdin에서 Claude Code JSON 데이터 파싱
  */
-export async function parseClaudeInput(): Promise<ClaudeInputData | null> {
-  try {
-    const raw = await readStdin();
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}
 
-    if (!raw) {
-      // 디버그: stdin이 비어있음
-      if (process.env.DEBUG_STATUSLINE) {
-        console.error('[statusline] No stdin data received');
-      }
-      return null;
+export function parseClaudeInputRaw(raw: string): ClaudeInputParseResult {
+  try {
+    const normalized = raw.trim();
+
+    if (!normalized) {
+      return { status: 'empty' };
     }
 
-    // 디버그: 받은 데이터 출력
-    if (process.env.DEBUG_STATUSLINE) {
+    const parsed = JSON.parse(normalized);
+    const validated = ClaudeInputSchema.parse(parsed);
+    return {
+      status: 'ok',
+      data: validated,
+    };
+  } catch (error) {
+    return {
+      status: 'invalid',
+      error: toError(error),
+    };
+  }
+}
+
+export function writeDebugInput(data: ClaudeInputData): void {
+  if (process.env.DEBUG_STATUSLINE !== '1') {
+    return;
+  }
+
+  try {
+    const logPath = join(homedir(), '.claude', 'statusline-debug.json');
+    mkdirSync(dirname(logPath), { recursive: true });
+    writeFileSync(logPath, JSON.stringify(data, null, 2));
+  } catch {
+    // 로그 저장 실패 무시
+  }
+}
+
+export async function parseClaudeInput(): Promise<ClaudeInputParseResult> {
+  const raw = await readStdin();
+
+  if (process.env.DEBUG_STATUSLINE) {
+    if (!raw) {
+      console.error('[statusline] No stdin data received');
+    } else {
       console.error('[statusline] Raw input:', raw.substring(0, 500));
     }
-
-    const parsed = JSON.parse(raw);
-
-    // 디버그: 파싱된 데이터 출력
-    if (process.env.DEBUG_STATUSLINE) {
-      console.error('[statusline] Parsed keys:', Object.keys(parsed));
-    }
-
-    // 디버그: 파일로 저장 (Claude Code가 전달하는 실제 데이터 확인용)
-    try {
-      const logPath = join(homedir(), '.claude', 'statusline-debug.json');
-      writeFileSync(logPath, JSON.stringify(parsed, null, 2));
-    } catch {
-      // 로그 저장 실패 무시
-    }
-
-    const validated = ClaudeInputSchema.parse(parsed);
-
-    return validated;
-  } catch (error) {
-    // 디버그: 에러 출력
-    if (process.env.DEBUG_STATUSLINE) {
-      console.error('[statusline] Parse error:', error);
-    }
-    return null;
   }
+
+  const result = parseClaudeInputRaw(raw);
+
+  if (process.env.DEBUG_STATUSLINE) {
+    if (result.status === 'ok') {
+      console.error('[statusline] Parsed keys:', Object.keys(result.data));
+    } else if (result.status === 'invalid') {
+      console.error('[statusline] Parse error:', result.error);
+    }
+  }
+
+  if (result.status === 'ok') {
+    writeDebugInput(result.data);
+  }
+
+  return result;
 }
 
 /**

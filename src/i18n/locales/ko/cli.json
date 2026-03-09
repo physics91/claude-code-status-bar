@@ -25,6 +25,7 @@
     "availableThemes": "사용 가능한 테마:",
     "availableWidgets": "사용 가능한 위젯:",
     "current": "(현재)",
-    "error": "오류:"
+    "error": "오류:",
+    "invalidInput": "잘못된 상태바 입력입니다."
   }
 }

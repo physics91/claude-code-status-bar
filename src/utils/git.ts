@@ -1,4 +1,11 @@
-import { execSync } from 'child_process';
+import { execSync, type ExecSyncOptionsWithStringEncoding } from 'child_process';
+import { createCache } from './cache.js';
+
+interface ParsedDiffStats {
+  added: number;
+  removed: number;
+  files: Set<string>;
+}
 
 interface GitInfo {
   branch: string | null;
@@ -9,30 +16,77 @@ interface GitInfo {
 }
 
 // 캐시 (5초 TTL)
-let gitCache: { value: GitInfo; expires: number } | null = null;
-const CACHE_TTL = 5000;
+const gitCache = createCache<GitInfo>({ ttl: 5000, maxSize: 5 });
+
+function parseDiffStats(diff: string): ParsedDiffStats {
+  if (!diff) {
+    return {
+      added: 0,
+      removed: 0,
+      files: new Set<string>(),
+    };
+  }
+
+  let added = 0;
+  let removed = 0;
+  const files = new Set<string>();
+
+  for (const line of diff.split('\n')) {
+    const parts = line.split('\t');
+    if (parts.length >= 3) {
+      const [addedRaw, removedRaw, filePath] = parts;
+      const parsedAdded = parseInt(addedRaw, 10);
+      const parsedRemoved = parseInt(removedRaw, 10);
+
+      if (!isNaN(parsedAdded)) {
+        added += parsedAdded;
+      }
+      if (!isNaN(parsedRemoved)) {
+        removed += parsedRemoved;
+      }
+      files.add(filePath);
+    }
+  }
+
+  return { added, removed, files };
+}
+
+function getBranchLabel(branchRef: string, shortSha: string): string | null {
+  if (!branchRef) {
+    return null;
+  }
+
+  if (branchRef === 'HEAD') {
+    return shortSha ? `detached@${shortSha}` : 'detached';
+  }
+
+  return branchRef;
+}
 
 /**
  * Git 브랜치명 가져오기 (캐싱 적용)
  */
 export function getGitInfo(cwd?: string): GitInfo {
-  const now = Date.now();
+  const workDir = cwd || process.cwd();
 
   // 캐시 확인
-  if (gitCache && gitCache.expires > now) {
-    return gitCache.value;
+  const cached = gitCache.get(workDir);
+  if (cached) {
+    return cached;
   }
 
   try {
-    const options = {
-      encoding: 'utf8' as const,
+    const options: ExecSyncOptionsWithStringEncoding = {
+      encoding: 'utf8',
       timeout: 500,
-      stdio: ['pipe', 'pipe', 'ignore'] as const,
-      cwd: cwd || process.cwd(),
+      stdio: ['pipe', 'pipe', 'ignore'],
+      cwd: workDir,
     };
 
     // 브랜치명 가져오기
-    const branch = execSync('git branch --show-current', options).trim();
+    const branchRef = execSync('git rev-parse --abbrev-ref HEAD', options).trim();
+    const shortSha = branchRef ? execSync('git rev-parse --short HEAD', options).trim() : '';
+    const branch = getBranchLabel(branchRef, shortSha);
 
     // 변경사항 확인
     let isDirty = false;
@@ -50,38 +104,22 @@ export function getGitInfo(cwd?: string): GitInfo {
         // staged changes
         const diffStaged = execSync('git diff --cached --numstat', options).trim();
 
-        const parseDiff = (diff: string) => {
-          if (!diff) return { added: 0, removed: 0, files: 0 };
-          let added = 0, removed = 0, files = 0;
-          for (const line of diff.split('\n')) {
-            const parts = line.split('\t');
-            if (parts.length >= 2) {
-              const a = parseInt(parts[0], 10);
-              const r = parseInt(parts[1], 10);
-              if (!isNaN(a)) added += a;
-              if (!isNaN(r)) removed += r;
-              files++;
-            }
-          }
-          return { added, removed, files };
-        };
-
-        const unstaged = parseDiff(diffUnstaged);
-        const staged = parseDiff(diffStaged);
+        const unstaged = parseDiffStats(diffUnstaged);
+        const staged = parseDiffStats(diffStaged);
         linesAdded = unstaged.added + staged.added;
         linesRemoved = unstaged.removed + staged.removed;
-        filesChanged = unstaged.files + staged.files;
+        filesChanged = new Set([...unstaged.files, ...staged.files]).size;
       }
     } catch {
       // ignore
     }
 
     const result: GitInfo = { branch: branch || null, isDirty, linesAdded, linesRemoved, filesChanged };
-    gitCache = { value: result, expires: now + CACHE_TTL };
+    gitCache.set(workDir, result);
     return result;
   } catch {
     const result: GitInfo = { branch: null, isDirty: false, linesAdded: 0, linesRemoved: 0, filesChanged: 0 };
-    gitCache = { value: result, expires: now + CACHE_TTL };
+    gitCache.set(workDir, result);
     return result;
   }
 }
@@ -107,5 +145,5 @@ export function isGitRepo(cwd?: string): boolean {
  * 캐시 초기화
  */
 export function clearGitCache(): void {
-  gitCache = null;
+  gitCache.clear();
 }

@@ -13,18 +13,26 @@ import { FilesWidget } from './FilesWidget.js';
 export * from './types.js';
 export * from './registry.js';
 
+const builtinWidgets = [
+  ModelWidget,
+  GitBranchWidget,
+  TokensWidget,
+  CostWidget,
+  SessionWidget,
+  CwdWidget,
+  ContextWidget,
+  TodoWidget,
+  MemoryWidget,
+  FilesWidget,
+];
+
 // 모든 내장 위젯 등록
 export function registerBuiltinWidgets(): void {
-  widgetRegistry.register(ModelWidget);
-  widgetRegistry.register(GitBranchWidget);
-  widgetRegistry.register(TokensWidget);
-  widgetRegistry.register(CostWidget);
-  widgetRegistry.register(SessionWidget);
-  widgetRegistry.register(CwdWidget);
-  widgetRegistry.register(ContextWidget);
-  widgetRegistry.register(TodoWidget);
-  widgetRegistry.register(MemoryWidget);
-  widgetRegistry.register(FilesWidget);
+  for (const widget of builtinWidgets) {
+    if (!widgetRegistry.get(widget.id)) {
+      widgetRegistry.register(widget);
+    }
+  }
 }
 
 // 위젯 내보내기

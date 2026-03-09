@@ -4,10 +4,15 @@ import { join, dirname } from 'path';
 import { AppConfigSchema, type AppConfigType } from './schema.js';
 import { defaultConfig } from './defaults.js';
 
+export interface LoadedConfig {
+  config: AppConfigType;
+  sourcePath?: string;
+}
+
 /**
  * 설정 파일 검색 경로
  */
-function getConfigPaths(): string[] {
+export function getConfigPaths(): string[] {
   const home = homedir();
   return [
     join(process.cwd(), '.claude-status-bar.json'),
@@ -27,14 +32,17 @@ export function getDefaultConfigPath(): string {
 /**
  * 설정 로드
  */
-export function loadConfig(): AppConfigType {
+export function loadConfigWithSource(): LoadedConfig {
   for (const configPath of getConfigPaths()) {
     if (existsSync(configPath)) {
       try {
         const raw = readFileSync(configPath, 'utf-8');
         const parsed = JSON.parse(raw);
         const validated = AppConfigSchema.parse(parsed);
-        return validated;
+        return {
+          config: validated,
+          sourcePath: configPath,
+        };
       } catch (error) {
         console.error(`Error loading config from ${configPath}:`, error);
       }
@@ -42,7 +50,13 @@ export function loadConfig(): AppConfigType {
   }
 
   // 설정 파일이 없으면 기본값 반환
-  return defaultConfig;
+  return {
+    config: AppConfigSchema.parse(defaultConfig),
+  };
+}
+
+export function loadConfig(): AppConfigType {
+  return loadConfigWithSource().config;
 }
 
 /**
@@ -51,6 +65,7 @@ export function loadConfig(): AppConfigType {
 export function saveConfig(config: AppConfigType, path?: string): void {
   const configPath = path || getDefaultConfigPath();
   const dir = dirname(configPath);
+  const validated = AppConfigSchema.parse(config);
 
   // 디렉토리 생성
   if (!existsSync(dir)) {
@@ -58,7 +73,7 @@ export function saveConfig(config: AppConfigType, path?: string): void {
   }
 
   // 설정 저장
-  writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
+  writeFileSync(configPath, JSON.stringify(validated, null, 2), 'utf-8');
 }
 
 /**

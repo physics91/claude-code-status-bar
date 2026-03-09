@@ -5,122 +5,16 @@ import type { Theme } from '../themes/types.js';
 import type { ClaudeInputData } from '../types/claude-input.js';
 import type { WidgetDefinition } from '../widgets/types.js';
 import type { WidgetConfig } from '../types/state.js';
-import { shortenModelName, formatTokens, formatCost, formatDuration, shortenPath, formatPercent } from '../utils/format.js';
+import type { BehaviorConfigType } from '../config/schema.js';
 import { getGitInfo } from '../utils/git.js';
-import { parseTranscript, extractActualTokenUsage, extractTodoProgress } from '../utils/transcript.js';
-import { getModelMaxTokens } from '../types/claude-input.js';
+import { getTranscriptData } from '../utils/transcript-cache.js';
 import { getTerminalWidth, getDisplayWidth } from '../utils/terminal.js';
 import { t } from '../i18n/index.js';
-
-/**
- * 프로그레스 바 생성
- */
-function createProgressBar(
-  percent: number,
-  width = 10,
-  filledChar = '█',
-  emptyChar = '░'
-): string {
-  const filled = Math.round((percent / 100) * width);
-  const empty = width - filled;
-  return filledChar.repeat(filled) + emptyChar.repeat(empty);
-}
+import { getWidgetContent } from './widget-content.js';
 
 /**
  * 위젯 데이터 추출 (에러 경계 포함)
  */
-function getWidgetContent(
-  widgetId: string,
-  data: ClaudeInputData,
-  theme: Theme
-): string | null {
-  try {
-    switch (widgetId) {
-      case 'model':
-        return shortenModelName(data.model?.display_name || data.model?.id || t('renderer:labels.unknown'));
-
-      case 'git': {
-        const gitInfo = getGitInfo(data.cwd || data.workspace?.current_dir);
-        if (!gitInfo.branch) return null;
-
-        // 실제 git diff에서 추가/제거 라인 수 가져오기
-        const linesAdded = gitInfo.linesAdded;
-        const linesRemoved = gitInfo.linesRemoved;
-
-        // 전체 흰색 배경에 각각 다른 전경색
-        const branch = chalk.hex('#37474f')(gitInfo.branch);  // 진한 회색
-        const added = chalk.hex('#2e7d32').bold(`+${linesAdded}`);  // 녹색
-        const removed = chalk.hex('#c62828').bold(`-${linesRemoved}`);  // 빨간색
-
-        // 전체를 흰색 배경으로 감싸기
-        return chalk.bgHex('#ffffff')(`${branch} ${added} ${removed}`);
-      }
-
-      case 'tokens': {
-        let tokens = 0;
-        if (data.transcript_path) {
-          const usage = extractActualTokenUsage(data.transcript_path);
-          tokens = usage.totalTokens;
-        }
-        return `${formatTokens(tokens)} ${t('renderer:labels.tok')}`;
-      }
-
-      case 'cost':
-        // total_cost_usd (새 필드) 우선, api_cost (이전 필드) fallback
-        return formatCost(data.cost?.total_cost_usd ?? data.cost?.api_cost ?? 0);
-
-      case 'session':
-        // total_duration_ms (전체 세션 시간) 사용
-        return formatDuration(data.cost?.total_duration_ms ?? data.cost?.duration_ms ?? 0);
-
-      case 'cwd':
-        return shortenPath(data.cwd || data.workspace?.current_dir || process.cwd(), 20);
-
-      case 'context': {
-        let usagePercent = 0;
-        if (data.transcript_path) {
-          const usage = extractActualTokenUsage(data.transcript_path);
-          const maxTokens = getModelMaxTokens(data.model?.id || '');
-          // 현재 컨텍스트 크기 사용 (contextTokens)
-          usagePercent = Math.min((usage.contextTokens / maxTokens) * 100, 100);
-        }
-        const bar = createProgressBar(usagePercent, 8);
-        return `${t('renderer:labels.ctx')} ${bar} ${formatPercent(usagePercent)}`;
-      }
-
-      case 'todo': {
-        let todoProgress = { completed: 0, inProgress: 0, pending: 0, total: 0 };
-        if (data.transcript_path) {
-          const messages = parseTranscript(data.transcript_path);
-          todoProgress = extractTodoProgress(messages);
-        }
-        if (todoProgress.total === 0) return null;
-        const percent = Math.round((todoProgress.completed / todoProgress.total) * 100);
-        return `${t('renderer:labels.todo')} ${todoProgress.completed}/${todoProgress.total} [${percent}%]`;
-      }
-
-      case 'memory': {
-        const memory = process.memoryUsage();
-        const usedMB = Math.round(memory.heapUsed / 1024 / 1024);
-        return `${t('renderer:labels.mem')} ${usedMB}MB`;
-      }
-
-      case 'files': {
-        const gitInfo = getGitInfo(data.cwd || data.workspace?.current_dir);
-        const filesChanged = gitInfo.filesChanged || 0;
-        if (filesChanged === 0) return null;
-        return `${filesChanged} ${t('renderer:labels.files')}`;
-      }
-
-      default:
-        return null;
-    }
-  } catch (error) {
-    // 에러 발생 시 해당 위젯만 건너뜀 (전체 렌더링 실패 방지)
-    return null;
-  }
-}
-
 /**
  * Powerline 세그먼트 렌더링
  * @param isLastInLine - true이면 해당 라인의 마지막 세그먼트 (ANSI 리셋 필요)
@@ -189,8 +83,14 @@ export function renderStatusBar(
   data: ClaudeInputData,
   theme: Theme,
   widgets: WidgetDefinition[],
-  widgetConfigs: Record<string, WidgetConfig>
+  widgetConfigs: Record<string, WidgetConfig>,
+  behaviorConfig?: BehaviorConfigType
 ): string {
+  const gitInfo = getGitInfo(data.cwd || data.workspace?.current_dir);
+  const transcriptData = data.transcript_path
+    ? getTranscriptData(data.transcript_path)
+    : undefined;
+
   // 활성화된 위젯만 필터링하고 순서대로 정렬
   const activeWidgets = widgets
     .filter((widget) => {
@@ -207,7 +107,11 @@ export function renderStatusBar(
   let segments: Array<{ widget: WidgetDefinition; content: string }> = [];
 
   for (const widget of activeWidgets) {
-    const content = getWidgetContent(widget.id, data, theme);
+    const content = getWidgetContent(widget.id, data, theme, {
+      gitInfo,
+      transcriptData,
+      behavior: behaviorConfig,
+    });
     if (content !== null) {
       segments.push({ widget, content });
     }

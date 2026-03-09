@@ -51,6 +51,7 @@ export interface WidgetConfig {
 export interface AppConfig {
   version: 1;
   theme: string;
+  locale: 'auto' | 'en' | 'ko';
   widgets: Record<string, WidgetConfig>;
   behavior: {
     contextWarningThreshold: number;

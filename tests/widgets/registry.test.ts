@@ -11,6 +11,18 @@ describe('WidgetRegistry', () => {
     expect(widgetRegistry.size).toBe(10);
   });
 
+  it('registers builtin widgets idempotently', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    registerBuiltinWidgets();
+    registerBuiltinWidgets();
+
+    expect(widgetRegistry.size).toBe(10);
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    warnSpy.mockRestore();
+  });
+
   it('gets widget by id', () => {
     registerBuiltinWidgets();
     const modelWidget = widgetRegistry.get('model');

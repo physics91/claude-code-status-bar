@@ -23,7 +23,13 @@ export async function renderApp(data: ClaudeInputData): Promise<void> {
   const widgets = widgetRegistry.getAll();
 
   // Status Bar 비동기 렌더링
-  const output = await renderStatusBarAsync(data, theme, widgets, config.widgets);
+  const output = await renderStatusBarAsync(
+    data,
+    theme,
+    widgets,
+    config.widgets,
+    config.behavior
+  );
 
   // stdout에 출력
   console.log(output);
@@ -37,7 +43,7 @@ export function renderAppSync(data: ClaudeInputData): void {
   const config = loadConfig();
   const theme = getTheme(config.theme);
   const widgets = widgetRegistry.getAll();
-  const output = renderStatusBar(data, theme, widgets, config.widgets);
+  const output = renderStatusBar(data, theme, widgets, config.widgets, config.behavior);
   console.log(output);
 }
 
@@ -53,7 +59,7 @@ export function renderText(data: ClaudeInputData): string {
   const theme = getTheme(config.theme);
   const widgets = widgetRegistry.getAll();
 
-  return renderStatusBar(data, theme, widgets, config.widgets);
+  return renderStatusBar(data, theme, widgets, config.widgets, config.behavior);
 }
 
 /**
@@ -65,5 +71,5 @@ export async function renderTextAsync(data: ClaudeInputData): Promise<string> {
   const theme = getTheme(config.theme);
   const widgets = widgetRegistry.getAll();
 
-  return renderStatusBarAsync(data, theme, widgets, config.widgets);
+  return renderStatusBarAsync(data, theme, widgets, config.widgets, config.behavior);
 }

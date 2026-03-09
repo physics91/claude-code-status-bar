@@ -1,12 +1,12 @@
 import { program } from 'commander';
 import { parseClaudeInput, createMockClaudeInput } from './cli/stdin-handler.js';
 import { renderApp } from './app.js';
-import { loadConfig, saveConfig, configExists, defaultConfig } from './config/index.js';
+import { loadConfig, loadConfigWithSource, saveConfig, defaultConfig, getDefaultConfigPath } from './config/index.js';
 import { getAvailableThemes } from './themes/index.js';
 import { registerBuiltinWidgets, widgetRegistry } from './widgets/index.js';
 import { runConfigTUI } from './tui/index.js';
 import { initI18n, t } from './i18n/index.js';
-import { getWidgetName, getWidgetDescription } from './widgets/types.js';
+import { getWidgetDescription } from './widgets/types.js';
 
 // 패키지 정보
 const VERSION = '1.3.0';
@@ -33,12 +33,18 @@ program
       if (options.demo) {
         data = createMockClaudeInput();
       } else {
-        data = await parseClaudeInput();
-      }
+        const result = await parseClaudeInput();
 
-      if (!data) {
-        // stdin이 없으면 데모 모드로 실행
-        data = createMockClaudeInput();
+        if (result.status === 'invalid') {
+          console.error(`${t('messages.invalidInput')} ${result.error.message}`);
+          process.exit(1);
+        }
+
+        if (result.status === 'empty') {
+          data = createMockClaudeInput();
+        } else {
+          data = result.data;
+        }
       }
 
       await renderApp(data);
@@ -56,7 +62,8 @@ program
   .option('--reset', t('commands.config.reset'))
   .option('--theme <theme>', t('commands.config.theme'))
   .action(async (options) => {
-    const currentConfig = loadConfig();
+    const { config: currentConfig, sourcePath } = loadConfigWithSource();
+    const configPath = sourcePath ?? getDefaultConfigPath();
 
     if (options.show) {
       console.log(JSON.stringify(currentConfig, null, 2));
@@ -64,7 +71,7 @@ program
     }
 
     if (options.reset) {
-      saveConfig(defaultConfig);
+      saveConfig(defaultConfig, configPath);
       console.log(t('messages.configReset'));
       return;
     }
@@ -84,13 +91,13 @@ program
       }
 
       currentConfig.theme = options.theme;
-      saveConfig(currentConfig);
+      saveConfig(currentConfig, configPath);
       console.log(t('messages.themeSet', { theme: options.theme }));
       return;
     }
 
     // 옵션 없이 실행하면 TUI 실행
-    await runConfigTUI();
+    await runConfigTUI(currentConfig, configPath);
   });
 
 // themes 명령: 테마 목록

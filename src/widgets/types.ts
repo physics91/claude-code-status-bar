@@ -70,9 +70,10 @@ export interface IWidgetRegistry {
  * i18n에서 widgets 네임스페이스의 번역을 사용합니다.
  */
 export function getWidgetName(widget: WidgetDefinition): string {
-  const translated = t(`widgets:${widget.id}.name` as any);
+  const key = `widgets:${widget.id}.name`;
+  const translated = t(key as any);
   // 번역이 없으면 기본 name 사용
-  if (translated === `${widget.id}.name`) {
+  if (translated === key || translated === `${widget.id}.name`) {
     return widget.name;
   }
   return translated;
@@ -83,9 +84,10 @@ export function getWidgetName(widget: WidgetDefinition): string {
  * i18n에서 widgets 네임스페이스의 번역을 사용합니다.
  */
 export function getWidgetDescription(widget: WidgetDefinition): string {
-  const translated = t(`widgets:${widget.id}.description` as any);
+  const key = `widgets:${widget.id}.description`;
+  const translated = t(key as any);
   // 번역이 없으면 기본 description 사용
-  if (translated === `${widget.id}.description`) {
+  if (translated === key || translated === `${widget.id}.description`) {
     return widget.description;
   }
   return translated;

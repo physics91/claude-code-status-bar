@@ -37,6 +37,7 @@ export interface CliTranslations {
     availableWidgets: string;
     current: string;
     error: string;
+    invalidInput: string;
   };
 }
 
@@ -85,6 +86,8 @@ export interface RendererTranslations {
     tok: string;
     ctx: string;
     todo: string;
+    mem: string;
+    files: string;
     noChanges: string;
     unknown: string;
   };

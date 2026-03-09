@@ -6,6 +6,7 @@ import type { AppConfigType } from './schema.js';
 export const defaultConfig: AppConfigType = {
   version: 1,
   theme: 'powerline-dark',
+  locale: 'auto',
   widgets: {
     model: { enabled: true, order: 0 },
     git: { enabled: true, order: 1 },
@@ -15,6 +16,8 @@ export const defaultConfig: AppConfigType = {
     cwd: { enabled: true, order: 5 },
     context: { enabled: true, order: 6 },
     todo: { enabled: false, order: 7 },
+    memory: { enabled: false, order: 8 },
+    files: { enabled: false, order: 9 },
   },
   behavior: {
     contextWarningThreshold: 70,

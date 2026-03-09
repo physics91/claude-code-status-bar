@@ -25,6 +25,7 @@
     "availableThemes": "Available themes:",
     "availableWidgets": "Available widgets:",
     "current": "(current)",
-    "error": "Error:"
+    "error": "Error:",
+    "invalidInput": "Invalid statusline input."
   }
 }

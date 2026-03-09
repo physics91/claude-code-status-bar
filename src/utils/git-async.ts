@@ -14,6 +14,12 @@ export interface GitInfo {
   filesChanged: number;
 }
 
+interface ParsedDiffStats {
+  added: number;
+  removed: number;
+  files: Set<string>;
+}
+
 // 캐시 (5초 TTL)
 const gitCache = createCache<GitInfo>({ ttl: 5000, maxSize: 5 });
 
@@ -23,30 +29,45 @@ const dedupedExecutor = new DedupedExecutor<GitInfo>();
 /**
  * diff 출력 파싱
  */
-function parseDiffStats(diff: string): { added: number; removed: number; files: number } {
-  if (!diff) return { added: 0, removed: 0, files: 0 };
+function parseDiffStats(diff: string): ParsedDiffStats {
+  if (!diff) {
+    return { added: 0, removed: 0, files: new Set<string>() };
+  }
 
   let added = 0;
   let removed = 0;
-  let files = 0;
+  const files = new Set<string>();
 
   for (const line of diff.split('\n')) {
     const parts = line.split('\t');
     if (parts.length >= 3) {
-      const a = parseInt(parts[0], 10);
-      const r = parseInt(parts[1], 10);
+      const [addedRaw, removedRaw, filePath] = parts;
+      const a = parseInt(addedRaw, 10);
+      const r = parseInt(removedRaw, 10);
       if (!isNaN(a)) added += a;
       if (!isNaN(r)) removed += r;
-      files++;
+      files.add(filePath);
     }
   }
 
   return { added, removed, files };
 }
 
+function getBranchLabel(branchRef: string, shortSha: string): string | null {
+  if (!branchRef) {
+    return null;
+  }
+
+  if (branchRef === 'HEAD') {
+    return shortSha ? `detached@${shortSha}` : 'detached';
+  }
+
+  return branchRef;
+}
+
 /**
  * 비동기로 Git 정보 가져오기
- * 4개의 git 명령어를 병렬로 실행하여 성능 향상
+ * 5개의 git 명령어를 병렬로 실행하여 성능 향상
  */
 async function fetchGitInfoAsync(cwd?: string): Promise<GitInfo> {
   const defaultResult: GitInfo = {
@@ -60,15 +81,17 @@ async function fetchGitInfoAsync(cwd?: string): Promise<GitInfo> {
   const workDir = cwd || process.cwd();
   const options = { cwd: workDir, timeout: 500 };
 
-  // 4개의 git 명령어를 병렬로 실행
+  // 5개의 git 명령어를 병렬로 실행
   const commands = [
-    'git branch --show-current',
+    'git rev-parse --abbrev-ref HEAD',
+    'git rev-parse --short HEAD',
     'git status --porcelain',
     'git diff --numstat',
     'git diff --cached --numstat',
   ];
 
-  const [branch, status, diffUnstaged, diffStaged] = await batchExecute(commands, options);
+  const [branchRef, shortSha, status, diffUnstaged, diffStaged] = await batchExecute(commands, options);
+  const branch = getBranchLabel(branchRef, shortSha);
 
   // 브랜치가 없으면 git 저장소가 아님
   if (!branch) {
@@ -86,7 +109,7 @@ async function fetchGitInfoAsync(cwd?: string): Promise<GitInfo> {
     isDirty,
     linesAdded: unstaged.added + staged.added,
     linesRemoved: unstaged.removed + staged.removed,
-    filesChanged: unstaged.files + staged.files,
+    filesChanged: new Set([...unstaged.files, ...staged.files]).size,
   };
 }
 

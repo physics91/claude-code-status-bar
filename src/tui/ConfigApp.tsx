@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Text, useInput, useApp } from 'ink';
 import { useTranslation } from 'react-i18next';
-import { loadConfig, saveConfig } from '../config/loader.js';
+import { saveConfig } from '../config/loader.js';
 import { getAvailableThemes, getTheme } from '../themes/index.js';
 import { widgetRegistry, registerBuiltinWidgets } from '../widgets/index.js';
 import { renderStatusBar } from '../core/renderer.js';
@@ -11,10 +11,18 @@ import type { AppConfigType } from '../config/schema.js';
 
 type Tab = 'widgets' | 'themes';
 
-export const ConfigApp: React.FC = () => {
+export interface ConfigAppProps {
+  initialConfig: AppConfigType;
+  configPath: string;
+}
+
+export const ConfigApp: React.FC<ConfigAppProps> = ({
+  initialConfig,
+  configPath,
+}) => {
   const { exit } = useApp();
   const { t } = useTranslation('tui');
-  const [config, setConfig] = useState<AppConfigType>(loadConfig());
+  const [config, setConfig] = useState<AppConfigType>(initialConfig);
   const [activeTab, setActiveTab] = useState<Tab>('widgets');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [saved, setSaved] = useState(false);
@@ -74,7 +82,7 @@ export const ConfigApp: React.FC = () => {
 
     // 저장
     if (input === 's' || input === 'S') {
-      saveConfig(config);
+      saveConfig(config, configPath);
       setSaved(true);
       return;
     }
@@ -89,7 +97,13 @@ export const ConfigApp: React.FC = () => {
   // 미리보기 생성
   const mockData = createMockClaudeInput();
   const theme = getTheme(config.theme);
-  const preview = renderStatusBar(mockData, theme, widgets, config.widgets);
+  const preview = renderStatusBar(
+    mockData,
+    theme,
+    widgets,
+    config.widgets,
+    config.behavior
+  );
 
   return (
     <Box flexDirection="column" padding={1}>

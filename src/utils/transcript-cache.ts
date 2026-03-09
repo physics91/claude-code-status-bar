@@ -86,6 +86,8 @@ interface TranscriptLine {
   tool_result?: unknown;
 }
 
+type TranscriptUsage = NonNullable<TranscriptLine['message']>['usage'];
+
 /**
  * 트랜스크립트 파일에서 모든 데이터를 한 번에 추출 (캐싱 적용)
  * @param transcriptPath 트랜스크립트 파일 경로
@@ -114,7 +116,7 @@ export function getTranscriptData(transcriptPath: string): TranscriptData {
     const lines = content.split('\n').filter(line => line.trim());
 
     const messages: TranscriptMessage[] = [];
-    let lastUsage: TranscriptLine['message']['usage'] | null = null;
+    let lastUsage: TranscriptUsage | null = null;
     let totalConsumed = 0;
     let outputTokens = 0;
     let latestTodos: TodoItem[] = [];

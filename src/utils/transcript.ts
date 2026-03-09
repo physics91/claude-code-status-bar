@@ -1,4 +1,4 @@
-import { readFileSync, existsSync, statSync, openSync, readSync, closeSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import type { TodoItem, TranscriptMessage } from '../types/claude-input.js';
 
 /**
@@ -88,31 +88,6 @@ export function parseTranscript(transcriptPath: string): TranscriptMessage[] {
     return messages;
   } catch {
     return [];
-  }
-}
-
-/**
- * 파일의 마지막 N 바이트만 읽기 (성능 최적화)
- */
-function readLastBytes(filePath: string, bytes: number): string {
-  try {
-    const stats = statSync(filePath);
-    const fileSize = stats.size;
-
-    if (fileSize <= bytes) {
-      return readFileSync(filePath, 'utf-8');
-    }
-
-    const fd = openSync(filePath, 'r');
-    const buffer = Buffer.alloc(bytes);
-    const startPos = fileSize - bytes;
-
-    readSync(fd, buffer, 0, bytes, startPos);
-    closeSync(fd);
-
-    return buffer.toString('utf-8');
-  } catch {
-    return readFileSync(filePath, 'utf-8');
   }
 }
 
